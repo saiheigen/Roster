@@ -6,7 +6,13 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="noindex,nofollow,noarchive" name="robots"/>
 <meta content="#173650" name="theme-color"/>
-<title>哨務工作台 v9.6｜離線整合版</title>
+<link href="manifest.webmanifest" rel="manifest"/>
+<link href="icon-180.png" rel="apple-touch-icon"/>
+<link href="icon-192.png" rel="icon" type="image/png"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="哨務工作台" name="apple-mobile-web-app-title"/>
+<title>哨務工作台 v10.0｜離線整合版</title>
 <style>
 
 :root {font-family:system-ui,-apple-system,BlinkMacSystemFont,"Microsoft JhengHei",sans-serif;color:#223048;background:#f5f7fb;font-size:15px;font-synthesis:none}
@@ -574,17 +580,22 @@ body.roster-working > :not(#runProgress):not(script){display:none!important}
 .person-share-options label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#4c5d6c;flex:1 1 160px}
 .person-share-text{width:100%;min-height:180px;box-sizing:border-box;margin-top:8px;font-family:inherit;line-height:1.6;border:1px solid #cfdbe6;border-radius:10px;padding:10px}
 .lookup-consent{display:flex;gap:8px;align-items:flex-start;margin:10px 0 4px;font-size:13px;color:#4c5d6c}
+
+.pwa-hint{margin:8px 0 12px;padding:10px 12px;border-radius:10px;background:#eef6ff;border:1px solid #c9dcf2;color:#1f4a72;font-size:14px;line-height:1.5}
+
+.agenda-actions{margin-top:12px;padding-top:10px;border-top:1px dashed #d6e2ea}
+.agenda-actions .actions{display:flex;flex-wrap:wrap;gap:8px}
 </style></head>
 <body><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
 <h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
 <p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
-<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v9.6</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
+<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.0</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
 <div aria-live="polite" id="quickMessage" role="alert"></div>
 <div class="layout">
 <aside class="sidebar"><div class="box"><div class="label">工作區</div><nav aria-label="網站功能" class="stepnav"><button class="active" data-step="home"><span class="circle">◫</span> 總覽</button><button data-step="setup"><span class="circle">♙</span> 人員名冊</button><button data-step="records"><span class="circle">▦</span> 休假與勤務</button><button data-step="results"><span class="circle">≡</span> 每日班表</button></nav><div class="sidebar-divider"></div><div class="sidebar-note"><span class="dot"></span>本機離線運作<br/><small>排班結果須經單位審核</small></div></div></aside>
 <main class="workspace">
 <section class="panel active" id="page-home">
-<div class="page-head"><h2>排班總覽</h2></div>
+<div class="page-head"><h2>排班總覽</h2><div class="pwa-hint" hidden id="pwaHint" role="status">📱 這是主畫面 App 版，資料和 Safari 分開保存。第一次使用請到最下方「備份與還原」›「還原備份資料」載入備份檔。</div></div>
 <div class="overview-grid">
 <div class="overview-main card">
 <div class="row spaced"><span class="section-tag">目前工作月份</span><span class="state-tag" id="overviewBadge">未建立班表</span></div>
@@ -716,11 +727,16 @@ body.roster-working > :not(#runProgress):not(script){display:none!important}
 <div class="row spaced day-label-row"><div class="day-title" id="dayTitle"></div></div><div aria-live="polite" class="statusinline" id="repairStatus"></div><div aria-live="polite" class="day-cards" id="daySchedule"></div>
 <div class="hidden" id="assignPanel"><h3>指定本班人員</h3><p class="help" id="assignTitle"></p><div class="field"><label for="assignPicker">通過現有檢查的候選人</label><select id="assignPicker"></select></div><p class="help" id="assignInfo"></p><div class="field"><label for="assignOperator">本次操作者（必填，本機紀錄）</label><input id="assignOperator" type="text" maxlength="40" placeholder="例如：排哨人"></div><div class="field"><label for="assignReason">指定原因（留存在本機變更紀錄，可選）</label><input id="assignReason" type="text" maxlength="140" placeholder="例如：勤務協調"></div><div class="actions"><button class="primary" id="assignSave" type="button">確定指定並固定此班</button><button class="ghost hidden" id="assignUnlock" type="button">解除固定</button><button class="danger" id="assignClear" type="button">清空此班</button><button id="assignCancel" type="button">取消</button></div></div>
 </div>
-<section id="personAgenda" hidden><div class="agenda-fields"><div class="field"><label for="agendaSearch">搜尋姓名或編號</label><input type="search" id="agendaSearch" placeholder="姓名或人員編號"></div><div class="field"><label for="agendaPerson">選擇人員（依級職排序）</label><select id="agendaPerson"></select></div></div><div class="agenda-summary" id="agendaSummary">選好人員後會顯示班次與負擔。</div><div class="agenda-list" id="agendaList"></div></section></div>
+<section id="personAgenda" hidden><div class="agenda-fields"><div class="field"><label for="agendaSearch">搜尋姓名或編號</label><input type="search" id="agendaSearch" placeholder="姓名或人員編號"></div><div class="field"><label for="agendaPerson">選擇人員（依級職排序）</label><select id="agendaPerson"></select></div></div><div class="agenda-summary" id="agendaSummary">選好人員後會顯示班次與負擔。</div><div class="agenda-list" id="agendaList"></div>
+<div class="agenda-actions" hidden id="agendaActions">
+<label class="share-consent lookup-consent"><input id="agendaConsent" type="checkbox"/><span>我了解內容包含姓名與勤務時間，會確認分享對象與管道符合單位規定。</span></label>
+<div class="actions"><button class="mini primary" id="agendaCopy" type="button">📋 複製此人班表</button><button class="mini ghost" hidden id="agendaSend" type="button">📤 分享</button><button class="mini ghost" id="agendaRecords" type="button">🔎 查看／修改此人的休假與勤務紀錄</button></div>
+<p class="help" id="agendaShareStatus" role="status"></p><textarea aria-label="此人班表內容" class="person-share-text hidden" id="agendaShareText" readonly spellcheck="false"></textarea>
+</div></section></div>
 <details class="ux-toolbox" id="precisionTools"><summary>最佳化與修復</summary><div class="compact-tools">
 <p class="help">一鍵排班已自動精算。下列工具用於：要求完整證明（含假日班公平）、手動調班後補滿缺班，或保留人工固定的班次全部重排。</p>
 <div class="actions">
-<button class="primary" type="button" id="precisionAll" aria-describedby="precisionHint">精算並證明最優（大門＋安官）</button>
+<button class="primary" type="button" id="precisionAll" aria-describedby="precisionHint">精算並證明最優（大門＋安官同時進行）</button>
 <button class="ghost" type="button" id="smartRepair">補滿缺班（少量調整）</button>
 <button class="ghost" type="button" id="resultsRun">↻ 保留固定班次重新排班</button>
 </div><p class="help" id="precisionHint">精算可隨時停止，已通過巡檢的改善會保留；勤務負擔點數的證明最多 120 秒、假日班公平最多 60 秒，未能證明時保留找到的改善。</p>
@@ -784,7 +800,7 @@ body.roster-working > :not(#runProgress):not(script){display:none!important}
 <dialog id="backupPassDialog"><form method="dialog"><label for="backupPass">加密備份密碼</label><input id="backupPass" type="password" autocomplete="current-password"><button value="open">還原</button><button value="cancel">取消</button></form></dialog>
 <div class="row"><div class="field"><label for="snapshotPicker">本機自動快照（最多 2 份）</label><select id="snapshotPicker"><option value="">目前沒有自動快照</option></select></div><button id="restoreSnapshot" type="button">還原選取的快照</button></div>
 <p class="help" id="snapshotNotice">自動快照約每 6 小時保留一份較舊的進度，最多兩份。快照與主存檔在同一個 App 儲存空間，不能替代外部備份。</p>
-<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v9.6 · 離線整合版</summary><p class="help">已實作初步禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。尚未以全部真實規章逐條驗收，尤其業參每週分布、長班時數公平。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。結果需人工審查。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
+<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.0 · 離線整合版</summary><p class="help">已實作初步禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。尚未以全部真實規章逐條驗收，尤其業參每週分布、長班時數公平。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。結果需人工審查。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
 </main></div>
 
 <nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
@@ -792,7 +808,8 @@ body.roster-working > :not(#runProgress):not(script){display:none!important}
 
 
 
-<!-- v9.6 · 紀錄列表、人員查詢依日期由小到大排列；同一天的班次依時間先後。
+<!-- v10.0 · 網頁版整合：大門與安官同時精算（兩個背景執行緒，約快 40%）；離線快取與主畫面 App（manifest、圖示）；請瀏覽器長期保存資料；「依人員」可直接複製／分享班表並跳到該員紀錄。
+v9.6 · 紀錄列表、人員查詢依日期由小到大排列；同一天的班次依時間先後。
 v9.5 · 個人班表分享：每人「哪幾天站哪一班」的文字，可複製或分享到 LINE；可單人或全部人員。
 v9.4 · 手機操作整理：輸入框不再自動放大、班表日期列固定在上方、左右滑動換日、「今天」按鈕、時段不斷行、紀錄表不超出畫面。
 v9.3 · 人員查詢：快速找出某人的休假與勤務紀錄、本月班次，可直接修改或刪除。
@@ -3512,14 +3529,17 @@ function showEngineMode(){}
 const {offlineAssignments}=RosterOfflineCodec;
 let solverAbort=null;
 // All worker inputs are local. The main page retains the roster and validates each result.
-let activeOffline=null;
-function stopOffline(message='已停止精修，保留目前班表。'){
- const job=activeOffline;
- if(job){activeOffline=null;job.reject?.(Error(message));job.worker?.terminate();}
- $('offlineStop').hidden=true;precisionButtons(false);
- if(!message)for(const pool of ['door','officer'])precisionPart(pool,'Panel').hidden=true;
- if(job?.precision&&message)precisionPart(job.pool,'Report').textContent=(job.summary||activeMonth+' '+job.label)+'｜已停止';
- $('offlineReport').textContent=message;
+// 大門與安官的精算各自在一個背景執行緒同時進行（手機多核心可同時運算）
+const offlineJobs=new Set();
+function stopOffline(message='已停止精修，保留目前班表。',only=null){
+ const jobs=only?(offlineJobs.has(only)?[only]:[]):[...offlineJobs];
+ for(const job of jobs){
+  offlineJobs.delete(job);job.reject?.(Error(message));job.worker?.terminate();
+  if(job.precision&&message)precisionPart(job.pool,'Report').textContent=(job.summary||activeMonth+' '+job.label)+'｜已停止';
+ }
+ if(!offlineJobs.size){$('offlineStop').hidden=true;precisionButtons(false);}
+ if(!message&&!only)for(const pool of ['door','officer'])precisionPart(pool,'Panel').hidden=true;
+ if(message||!only)$('offlineReport').textContent=message;
 }
 async function solveOfflinePool(job,url,bytes,frame,onProgress=null){
  let worker,timer;
@@ -3805,40 +3825,42 @@ function checkPrecisionDisplay(){
   if(state.month!==activeMonth||state.pins!==textSig(pinnedShifts)||state.inputs!==currentInputSig()||
      !last||state.signature!==precisionPoolSignature(last.solutions,pool)){
    panel.hidden=true;precisionSnapshots[pool]=null;
-   if(!activeOffline)$('offlineReport').textContent='';
+   if(!offlineJobs.size)$('offlineReport').textContent='';
   }
  }
 }
-async function runPrecision(pool,draft=null){
+async function runPrecision(pool,draft=null,group=null){
  const officer=pool==='officer',label=officer?'安官':'大門',objectives=officer?officerObjectives:doorObjectives;
  const labels=officer?['缺班','個人目標偏差 L1（已計折抵）',burdenOn()?'勤務負擔點數':'艱苦哨與時數公平分數','假日班公平']:['缺班','同日額外班次','個人目標偏差 L1','本月連站兩天（人次）',burdenOn()?'勤務負擔點數':'艱苦哨分數','假日班公平'];
  const panel=precisionPart(pool,'Panel'),report=precisionPart(pool,'Report'),status=$('offlineReport');
- if(activeOffline){status.textContent='請先停止正在執行的精修，再啟動精算。';return;}
+ if(offlineJobs.size&&!group&&!draft?.parallel){status.textContent='請先停止正在執行的精修，再啟動精算。';return;}
  if(!draft&&(!last||!allowFreshEdit()||loadedSig!==currentInputSig())){status.textContent='請先建立有效的本月班表。';return;}
- if((!draft&&(progressOwner||scheduleBusy))||deepState?.busy||solverAbort||repairBusy){status.textContent='請先完成目前的排班作業。';return;}
+  if((!draft&&!group&&(progressOwner||scheduleBusy))||deepState?.busy||solverAbort||repairBusy){status.textContent='請先完成目前的排班作業。';return;}
  const job={precision:true,pool,label},base=draft?.base||last,month=activeMonth,generation=scheduleGeneration;
  const inputs=draft?currentInputSig():loadedSig,pins={...pinnedShifts},pinSig=textSig(pins);
- let signature=deepAssignmentsSig(base.solutions),url,latest,certified=0,saveWarning='',finalizeCells=null;
- const current=()=>activeOffline===job&&(draft||last===base)&&month===activeMonth&&!isLocked()&&!storagePaused&&
-  generation===scheduleGeneration&&inputs===currentInputSig()&&pinSig===textSig(pinnedShifts)&&signature===deepAssignmentsSig(base.solutions);
+ // 只核對本勤務的班表：另一個勤務同時精算、更新班表時不會互相誤判
+ let signature=precisionPoolSignature(base.solutions,pool),url,latest,certified=0,saveWarning='',finalizeCells=null;
+ const current=()=>offlineJobs.has(job)&&(draft||last===base)&&month===activeMonth&&!isLocked()&&!storagePaused&&
+  generation===scheduleGeneration&&inputs===currentInputSig()&&pinSig===textSig(pinnedShifts)&&signature===precisionPoolSignature(base.solutions,pool);
  function check(){if(draft)draft.check();if(!current())throw Error('本月資料或班表已變更，請重新啟動精算');}
- const view=draft?.view||openProgress(month+' '+label+'精算','停止並查看班表',()=>{precisionStopAll=true;stopOffline('已停止精算，已保留通過巡檢的班表。');});
- paintProgress(view,draft?.start||0,'準備'+label+'精算');
+ const view=draft?.view||group?.view||openProgress(month+' '+label+'精算','停止並查看班表',()=>{precisionStopAll=true;stopOffline('已停止精算，已保留通過巡檢的班表。');});
+ const shared=draft||group,paint=(frac,text)=>{if(shared?.paint)shared.paint(pool,frac,text);else paintProgress(view,(draft?.start||0)+(draft?.span||100)*frac,text);};
+ paint(0,'準備'+label+'精算');
  let timedOut=false,problem='';
  let timer=null,budgetPhase=null,overall=null;
  const l1Stage=officer?1:2;
  // 一鍵排班時每個勤務的精算最多 4 分鐘；時間到保留已通過巡檢的班表，可之後再按「精算並證明最優」補完。
- if(draft)overall=setTimeout(()=>{if(activeOffline===job){timedOut=true;stopOffline(label+'精算已達一鍵排班時限。');}},240000);
+ if(draft)overall=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;stopOffline(label+'精算已達一鍵排班時限。',job);}},240000);
  function startFairnessBudget(proven){
   if(!draft||proven<l1Stage)return;
   const phase=proven===l1Stage?'l1':burdenOn()&&proven>=labels.length-2?'points':'rest';
   if(budgetPhase===phase)return;
   if(timer!==null)clearTimeout(timer);
   budgetPhase=phase;
-  timer=setTimeout(()=>{if(activeOffline===job){timedOut=true;stopOffline(label+'公平精算已達時限。');}},phase==='l1'?180000:15000);
+  timer=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;stopOffline(label+'公平精算已達時限。',job);}},phase==='l1'?180000:15000);
  }
  const snapshot={month,inputs,pins:pinSig,signature:precisionPoolSignature(base.solutions,pool),proven:0,total:labels.length,labels:labels.slice(),done:false,timedOut:false};precisionSnapshots[pool]=snapshot;
- activeOffline=job;$('offlineStop').hidden=false;precisionButtons(true);panel.hidden=false;delete panel.dataset.status;
+ offlineJobs.add(job);$('offlineStop').hidden=false;precisionButtons(true);panel.hidden=false;delete panel.dataset.status;
  precisionPart(pool,'Rows').replaceChildren();report.textContent=month+' '+label+'｜正在核對本機班表';
  status.textContent=label+'精算可隨時停止，通過獨立巡檢的改善會自動存檔。';
  try{
@@ -3881,7 +3903,7 @@ async function runPrecision(pool,draft=null){
     base.solutions=candidate;snapshot.signature=precisionPoolSignature(candidate,pool);
     try{if(!draft){render();if(showIndependentAudit().issues.length)throw Error('獨立巡檢未通過');}}
     catch(e){base.solutions=previous;snapshot.signature=precisionPoolSignature(previous,pool);if(!draft)render();throw e;}
-    signature=deepAssignmentsSig(candidate);
+    signature=precisionPoolSignature(candidate,pool);
     if(!draft){appendChangeLog(label+'精算',shiftDiff(before,scheduleRows(candidate)),{reason:'依序比較已設定的目標，通過獨立巡檢',beforeRef,afterRef:scheduleReferenceCode()});
     renderChangeHistory();
     if(!saveAutoNow())saveWarning='。本機自動存檔失敗，請使用「備份全部」';}
@@ -3890,7 +3912,7 @@ async function runPrecision(pool,draft=null){
    cells.forEach((set,i)=>set(q[i],i<certified));
    report.textContent=month+' '+label+'｜'+progress.phase+'（'+certified+'/'+labels.length+'）'+saveWarning;
    job.summary=report.textContent;
-   paintProgress(view,(draft?.start||0)+(draft?.span||100)*certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');
+   paint(certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');
   };
   const solved=await solveOfflinePool(job,url,bytes,src,onProgress);check();
   const holidaySkipped=!!solved?.holidayUnproven&&(certified===labels.length-1||(!!solved?.pointsUnproven&&certified===labels.length-2));
@@ -3908,7 +3930,7 @@ async function runPrecision(pool,draft=null){
     base.solutions=candidate;snapshot.signature=precisionPoolSignature(candidate,pool);
     try{if(!draft){render();if(showIndependentAudit().issues.length)throw Error('獨立巡檢未通過');}}
     catch(e){base.solutions=previous;snapshot.signature=precisionPoolSignature(previous,pool);if(!draft)render();throw e;}
-    signature=deepAssignmentsSig(candidate);
+    signature=precisionPoolSignature(candidate,pool);
     if(!draft){appendChangeLog(label+(src.points?'點數與假日精修':'假日公平精修'),shiftDiff(before,scheduleRows(candidate)),{reason:src.points?'兩人互換班次，勤務負擔點數或假日班更平均；更高優先目標不變':'假日班依班數更平均；已證明的其他目標數值完全不變',beforeRef,afterRef:scheduleReferenceCode()});
      renderChangeHistory();if(!saveAutoNow())saveWarning='。本機自動存檔失敗，請使用「備份全部」';}
     holidayNote=(src.points?'　點數與假日精修：假日失衡 ':'　假日班公平精修：失衡指標 ')+polished.before.toFixed(2)+' → '+polished.after.toFixed(2)+(src.points?'，勤務負擔點數 '+polished.ptsBefore.toFixed(2)+' → '+polished.ptsAfter.toFixed(2)+'（更高優先目標不變）。':'（其他目標不變）。');
@@ -3934,11 +3956,11 @@ async function runPrecision(pool,draft=null){
   const why=solved?.pointsRestricted?'有缺班：缺的班維持空缺，其餘班次已平衡勤務負擔點數與假日班（不另證明）':solved?.pointsUnproven?(solved.pointsTimedOut?(draft?'勤務負擔點數已在時限內改善，需要完整證明請按「精算並證明最優」':'勤務負擔點數在 120 秒內未完成證明，已保留找到的改善；假日班公平已在點數不變差的前提下改善'):'有缺班，勤務負擔點數與假日班公平不另證明')
    :solved?.holidayTimedOut?'假日班公平在 60 秒內未完成證明，已保留找到的改善':draft?'假日班已用快速互換改善，需要完整證明請按「精算並證明最優」':'有缺班，假日班公平不另證明';
   status.textContent=panel.dataset.status=label+'精算完成，'+(holidaySkipped&&!holidayProvenByBound?(labels.length-(solved?.pointsUnproven?2:1))+' 項目標已證明最優（'+why+'）。':labels.length+' 項目標均已證明最優（含假日班公平）。')+holidayNote+saveWarning;
- }catch(e){if(activeOffline===job){problem=label+'精算未完成：'+e.message;panel.dataset.status=label+'精算已中止。'+e.message;status.textContent=label+'精算已中止。'+e.message+'。'+saveWarning;report.textContent=month+' '+label+'｜已中止，已完成 '+certified+'/'+labels.length+' 項證明。'+saveWarning;}}
+ }catch(e){if(offlineJobs.has(job)){problem=label+'精算未完成：'+e.message;panel.dataset.status=label+'精算已中止。'+e.message;status.textContent=label+'精算已中止。'+e.message+'。'+saveWarning;report.textContent=month+' '+label+'｜已中止，已完成 '+certified+'/'+labels.length+' 項證明。'+saveWarning;}}
  finally{
   clearTimeout(timer);if(url)URL.revokeObjectURL(url);
-  if(activeOffline===job){activeOffline=null;$('offlineStop').hidden=true;precisionButtons(false);}
-  if(!draft){closeProgress(view);if(last)renderEasyDayView();}
+  if(offlineJobs.has(job)){offlineJobs.delete(job);if(!offlineJobs.size){$('offlineStop').hidden=true;precisionButtons(false);}}
+  if(!draft&&!group){closeProgress(view);if(last)renderEasyDayView();}
   if(finalizeCells)finalizeCells();
  }
  if(overall!==null)clearTimeout(overall);
@@ -4106,6 +4128,7 @@ function renderQualityPanel(){
  if(!hints.length)hints.push('目前沒有缺班或顯著班數偏差。仍須核對同時段艱苦哨、業參實際日期及單位核定規則。');
  $('qualityHint').textContent=hints.join('\n');
 }
+let agendaCurrent=null;
 function renderPersonalAgenda(){
  if(!last)return;
  const pool=currentPool,el=$('agendaPerson'),old=el.value,staff=last.m.staff[pool];
@@ -4118,8 +4141,8 @@ function renderPersonalAgenda(){
  const ids=sorted.map(p=>p.key);
  el.innerHTML=sorted.map(p=>`<option value="${esc(p.key)}">${esc(p.rank)} · ${esc(p.name)}（${esc(p.id)}）</option>`).join('');
  if(ids.includes(old))el.value=old;
- const p=staff.find(p=>p.key===el.value);if(!p){$('agendaSummary').textContent=query?'查無符合的人員':'目前沒有可查看的人員';$('agendaList').innerHTML='';return;}
- const sol=last.solutions[pool],own=sol.tasks.filter(t=>sol.res.get(t.key)?.key===p.key).sort((a,b)=>a.day-b.day||a.num-b.num);
+ const p=staff.find(p=>p.key===el.value);if(!p){agendaCurrent=null;$('agendaActions').hidden=true;$('agendaSummary').textContent=query?'查無符合的人員':'目前沒有可查看的人員';$('agendaList').innerHTML='';return;}
+ const sol=last.solutions[pool],own=personShifts(pool,p);agendaCurrent={pool,p};$('agendaActions').hidden=false;$('agendaConsent').checked=$('shareConsent').checked;$('agendaShareStatus').textContent='';$('agendaShareText').classList.add('hidden');
  const st=sol.stats.find(s=>s.p.key===p.key);
  $('agendaSummary').textContent=`${p.rank} ${p.name} · 本月 ${own.length} 班／${own.reduce((a,t)=>a+t.dur,0)} 小時 · 假期 ${own.filter(t=>t.holiday).length} 班 · 本月建議實站 ${st?.target??0} 班（基本配額 ${st?.goal??0}） · 夜哨 ${st?.night??0} 班 · 午間 ${st?.noon??0} 班 · 督伙折抵 ${p.mealCredit} · 前月減班 ${p.carry}`;
  $('agendaList').innerHTML=own.length?own.map(t=>`<div class="agenda-item"><b>${dateText(t.day)} 星期${weekday(t.day)}</b><span>第 ${t.num} 班 · ${fmt(t)} ${night(t)?'· 夜哨':noon(t)?'· 午間':''}</span></div>`).join(''):'<div class="help">本月沒有排入班次。</div>';
@@ -4385,7 +4408,7 @@ function downloadReadonly(){
  }catch(e){$('shareStatus').textContent='⚠ '+e.message;}
 }
 function readonlyPlainText(){
- const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v9.6','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
+ const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.0','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
  for(const pool of ['door','officer']){
   rows.push('',`【${pool==='door'?'大門衛哨':'安全士官'}】`);
   let prev='';for(const r of p[pool]){
@@ -5317,7 +5340,7 @@ async function runSchedule(reviewedModel){
  const view=openProgress(startingMonth+' 排班','取消排班',()=>{
   if(canFinish){
    finishEarly=true;
-   if(activeOffline)stopOffline('已使用通過巡檢的班表。');
+   if(offlineJobs.size)stopOffline('已使用通過巡檢的班表。');
    if(solverAbort)solverAbort.abort();
   }else cancelled=true;
   $('runInterrupt').disabled=true;
@@ -5359,15 +5382,14 @@ async function runSchedule(reviewedModel){
    }
   }
   canFinish=true;$('runInterrupt').textContent='使用目前已驗證班表';
-  if(auto){
-   const order=base.solutions.officer.missing?['officer','door']:['door','officer'];
-   for(const [index,pool] of order.entries()){
-    const start=60+18*index;
-    if(finishEarly)break;
-    const result=await runPrecision(pool,{base,view,start,span:18,check});
-    if(result)notice.push(result);
-    check();
-   }
+  if(auto&&!finishEarly){
+   // 大門與安官同時精算（各用一個背景執行緒）
+   const frac={door:0,officer:0},text={};
+   const shared={base,view,check,parallel:true,paint:(pool,f,t)=>{frac[pool]=f;text[pool]=t;
+    paintProgress(view,60+36*(frac.door+frac.officer)/2,(text.door||'大門準備中')+'｜'+(text.officer||'安官準備中'));}};
+   const results=await Promise.all(['door','officer'].map(pool=>runPrecision(pool,shared)));
+   for(const r of results)if(r)notice.push(r);
+   check();
   }
   await phase(97,'完成最終巡檢');
   verifyOptimization(base.m,base.solutions,pins);
@@ -5985,6 +6007,7 @@ function sortRosterRows(rows,pool){
  });
 }
 function rosterDisplay(){
+ try{window.updatePwaHint?.();}catch(_){}
  for(const pool of ['door','officer']){
   const query=($('rosterSearch')?.value||'').trim().toLowerCase();
   const rows=sortRosterRows(getRosterRows(pool).filter(r=>!query||r.fields.some(f=>String(f).toLowerCase().includes(query))),pool),list=$(pool+'List');
@@ -6229,6 +6252,16 @@ function initResultNavigation(){
  $('viewPerson').onclick=()=>chooseView(true);
  $('uxJumpMissing').onclick=()=>showScheduleDate($('filterDate').value,!allMissingMode);
  $('agendaSearch').addEventListener('input',renderPersonalAgenda);
+ // 依人員檢視：可直接複製／分享此人班表，或跳到「人員查詢」修改他的休假與勤務紀錄
+ {const say=m=>$('agendaShareStatus').textContent=m;
+  const text=()=>personShareHeader().replace('個人班表','班表')+'\n'+personShiftText(agendaCurrent.pool,agendaCurrent.p,'block')+'\n'+personShareFooter;
+  const ready=()=>{if(!agendaCurrent)return false;const reason=readonlyEligibility();if(reason){say('⚠ '+reason);return false;}if(!$('agendaConsent').checked){say('⚠ 請先勾選上方的分享確認。');return false;}return true;};
+  $('agendaConsent').onchange=e=>{$('shareConsent').checked=e.target.checked;$('shareConsent').dispatchEvent(new Event('change',{bubbles:true}));};
+  $('agendaCopy').onclick=()=>{if(ready())copyPlainText(text(),$('agendaShareText'),say);};
+  $('agendaSend').hidden=!navigator.share;
+  $('agendaSend').onclick=async()=>{if(!ready())return;try{await navigator.share({title:(agendaCurrent.p.name||agendaCurrent.p.id)+' 班表',text:text()});say('✅ 已開啟分享。');}catch(e){if(e&&e.name!=='AbortError')say('ℹ 這個 App 不支援系統分享，請改用「複製此人班表」。');}};
+  $('agendaRecords').onclick=()=>{if(!agendaCurrent)return;lookupId=agendaCurrent.p.id;showStep('records');renderLookup();setTimeout(()=>$('personLookup').scrollIntoView({block:'start',behavior:'smooth'}),80);};
+ }
 
 }
 function initEasyUX(){
@@ -6261,7 +6294,20 @@ $('roInlinePrev').onclick=()=>moveReadonlyInlineDay(-1);$('roInlineNext').onclic
 $('sharePreview').onclick=previewReadonly;$('shareFile').onclick=shareOrDownload;$('shareText').onclick=copyReadonlyText;$('shareCopyClose').onclick=()=>{$('shareCopyBox').classList.add('hidden');};$('shareClose').onclick=closeReadonlyPreview;
  $('agendaPerson').addEventListener('change',renderPersonalAgenda);
  $('ruleSelfTest').onclick=runRuleSelfTests;$('integrityRun').onclick=showIndependentAudit;
- $('precisionAll').onclick=async()=>{precisionStopAll=false;for(const pool of ['door','officer']){await runPrecision(pool);if(!last||precisionStopAll)break;}};
+ $('precisionAll').onclick=async()=>{
+  precisionStopAll=false;
+  if(offlineJobs.size||progressOwner||scheduleBusy){$('offlineReport').textContent='請先完成目前的排班作業。';return;}
+  if(!last||!allowFreshEdit()||loadedSig!==currentInputSig()){$('offlineReport').textContent='請先建立有效的本月班表。';return;}
+  const view=openProgress(activeMonth+' 精算（大門＋安官同時進行）','停止並查看班表',()=>{precisionStopAll=true;stopOffline('已停止精算，已保留通過巡檢的班表。');});
+  const frac={door:0,officer:0},text={};
+  const group={view,paint:(pool,f,t)=>{frac[pool]=f;text[pool]=t;paintProgress(view,100*(frac.door+frac.officer)/2,(text.door||'大門準備中')+'｜'+(text.officer||'安官準備中'));}};
+  try{await Promise.all(['door','officer'].map(pool=>runPrecision(pool,null,group)));}
+  finally{
+   closeProgress(view);if(last)renderEasyDayView();
+   const msg=['door','officer'].map(p=>precisionPart(p,'Panel').dataset.status).filter(Boolean).join('　');
+   if(msg)$('offlineReport').textContent=msg;
+  }
+ };
  $('offlineStop').onclick=()=>{precisionStopAll=true;stopOffline();};
  $('overviewRun').onclick=quickSchedule;
  $('overviewCheck').onclick=()=>showStep('review');
@@ -6279,6 +6325,19 @@ startProtectedStore();
 // #endregion
 })();
 
+</script>
+<script>
+// 網頁版（https）才啟用：離線快取、請瀏覽器長期保存本機資料。用 Documents 等直接開檔時不會執行。
+(()=>{
+ if(!/^https?:$/.test(location.protocol))return;
+ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persisted().then(p=>p||navigator.storage.persist()).catch(()=>{});}catch(_){}
+ const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+ const hint=window.updatePwaHint=()=>{const h=document.getElementById('pwaHint');if(!h)return;const d=document.getElementById('door'),o=document.getElementById('officer');
+  h.hidden=!(standalone&&d&&o&&!d.value.trim()&&!o.value.trim());};
+ window.addEventListener('load',()=>{hint();for(const id of ['door','officer'])document.getElementById(id)?.addEventListener('input',hint);
+  document.getElementById('restore')?.addEventListener('change',()=>setTimeout(hint,800));setTimeout(hint,1500);});
+})();
 </script>
 </body>
 </html>
