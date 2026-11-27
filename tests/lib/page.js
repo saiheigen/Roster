@@ -7,7 +7,8 @@ const { chromium } = require('playwright');
 
 const ANCHOR = "let last=null,currentPool='door',missingOnly=false;";
 const HOOK = ANCHOR + "window.__kit={get last(){return last},staticReason,conflict," +
-  "audit:()=>independentScheduleAudit(last.m,last.solutions,{})};";
+  "audit:()=>independentScheduleAudit(last.m,last.solutions,{}),recount:recountSolution," +
+  "auditOf:sol=>independentScheduleAudit(last.m,sol,{})};";
 
 function instrument(htmlPath, edits = []) {
   let s = fs.readFileSync(htmlPath, 'utf8');

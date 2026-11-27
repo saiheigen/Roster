@@ -4,10 +4,12 @@
 // 用法：node run.js <工作台.html> [--baseline 舊版.html] [--quick]
 //        [--leave 休假.tsv --door 56 --officer 56 [--golden 標準答案.json | --write-golden 標準答案.json]]
 //        [--expect-exact-variants] [--report report.json]
-//        [--only selftest,demo,stress,variants,settings,burden,equivalence,real]
+//        [--only selftest,demo,stress,variants,consistency,update,settings,burden,equivalence,real]
 const fs = require('fs');
 const K = require('./lib/page');
 const { verifySchedule, holidayImbalance } = require('./lib/verify');
+const Consistency = require('./lib/consistency');
+const { updateFlow } = require('./lib/update');
 
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
@@ -124,6 +126,38 @@ async function suiteVariants() {
     if (flag('--expect-exact-variants') && !proven) record('規則變體精算：' + name, false, status.slice(0, 120));
     await page.close();
   }
+}
+
+// 三套規則判定（排班用、獨立巡檢、verify.js）對隨機改壞的班表必須判定出同一批違規人員。
+// 每個規則變體都跑，確認改規則表數值時三套都跟著改。
+async function suiteConsistency() {
+  const trials = flag('--quick') ? 120 : 300;
+  for (const [name, edits] of Object.entries(VARIANTS)) {
+    for (const data of ['範例名冊', '吃緊＋各類事件']) {
+      const { page, errors } = await K.open(target, edits);
+      if (data === '範例名冊') await K.loadDemo(page);
+      else await Consistency.loadEventRich(page, K, syntheticLeave);
+      await K.schedule(page);
+      if (name === '預設') {
+        const ev = await Consistency.compareEvents(page, K.dumpSchedule);
+        const eg = ev.diffs[0] ? '；例：' + JSON.stringify(ev.diffs[0]).slice(0, 300) : '';
+        record(`三套事件禁排逐一比對／${data}`, ev.diffs.length === 0, `${ev.pairs} 個人員×班次組合，禁排 ${ev.blocked}，不一致 ${ev.diffs.length}${eg}`);
+      }
+      const r = await Consistency.compare(page, K.dumpSchedule, { trials, seed: 1 + name.length * 31 + data.length });
+      const sample = r.diffs[0] ? '；例：' + JSON.stringify(r.diffs[0]).slice(0, 400) : '';
+      record(`三套規則一致：${name}／${data}`, r.diffs.length === 0 && errors.length === 0,
+        `${r.trials} 份改壞的班表，有違規 ${r.flagged} 份次，判定不一致 ${r.diffs.length}${sample}`);
+      await page.close();
+    }
+  }
+}
+
+// 網站版的「有新版本」提示：新版本下載好後要等使用者按「更新」才切換（需要同資料夾的 sw.js）。
+async function suiteUpdate() {
+  if (!fs.existsSync(require('path').join(require('path').dirname(target), 'sw.js'))) return;
+  const { steps, errors } = await updateFlow(target);
+  for (const s of steps) record('新版本提示：' + s.name, s.ok, s.detail);
+  if (errors.length) record('新版本提示：頁面錯誤', false, errors.slice(0, 2).join('；'));
 }
 
 // v8.2 起：在「排班規則與每人上限」設定頁改數值，排班與驗算都必須依新設定，重新開啟後設定仍在。
@@ -293,6 +327,8 @@ async function suiteReal() {
     if (want('demo')) await suiteDemo();
     if (want('stress')) await suiteStress();
     if (want('variants')) await suiteVariants();
+    if (want('consistency')) await suiteConsistency();
+    if (want('update')) await suiteUpdate();
     if (want('settings')) await suiteSettingsPage();
     if (want('burden')) await suiteBurden();
     if (opt('--baseline') && want('equivalence')) await suiteEquivalence(opt('--baseline'));

@@ -96,4 +96,4 @@ function holidayImbalance(dump, pool) {
   return F ? sum / (F * F) : 0;
 }
 
-module.exports = { verifySchedule, holidayImbalance };
+module.exports = { verifySchedule, holidayImbalance, eventBlocks };
