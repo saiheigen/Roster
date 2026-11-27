@@ -1,0 +1,76 @@
+# 每次推送到 main：先檢查 index.html 與原始碼一致、跑自動測試；全部通過才發布到 GitHub Pages。
+# 測試失敗時網站維持上一版，不會有人拿到壞掉的版本。
+# 第一次使用前：GitHub › Settings › Pages › Build and deployment › Source 選「GitHub Actions」。
+name: 測試並發布
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      full:
+        description: 完整測試（含 10 種規則變體的精算，約 1 小時）
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: index.html、sw.js 與 src/ 一致
+        run: node build.js --check
+      - name: 安裝測試用瀏覽器
+        working-directory: tests
+        run: npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: 自動測試
+        working-directory: tests
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then
+            node run.js ../index.html --expect-exact-variants --report report.json
+          else
+            node run.js ../index.html --quick --only selftest,demo,consistency,update,stress,settings,burden --report report.json
+          fi
+      - name: 保存測試報告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: tests/report.json
+          if-no-files-found: ignore
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 只發布網站需要的檔案（不含 src、tests）
+        run: |
+          mkdir _site
+          cp index.html sw.js manifest.webmanifest icon-*.png _site/
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
