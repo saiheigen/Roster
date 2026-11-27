@@ -6,7 +6,7 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="noindex,nofollow,noarchive" name="robots"/>
 <meta content="#173650" name="theme-color"/>
-<title>哨務工作台 v9.5｜離線整合版</title>
+<title>哨務工作台 v9.6｜離線整合版</title>
 <style>
 
 :root {font-family:system-ui,-apple-system,BlinkMacSystemFont,"Microsoft JhengHei",sans-serif;color:#223048;background:#f5f7fb;font-size:15px;font-synthesis:none}
@@ -578,7 +578,7 @@ body.roster-working > :not(#runProgress):not(script){display:none!important}
 <body><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
 <h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
 <p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
-<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v9.5</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
+<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v9.6</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
 <div aria-live="polite" id="quickMessage" role="alert"></div>
 <div class="layout">
 <aside class="sidebar"><div class="box"><div class="label">工作區</div><nav aria-label="網站功能" class="stepnav"><button class="active" data-step="home"><span class="circle">◫</span> 總覽</button><button data-step="setup"><span class="circle">♙</span> 人員名冊</button><button data-step="records"><span class="circle">▦</span> 休假與勤務</button><button data-step="results"><span class="circle">≡</span> 每日班表</button></nav><div class="sidebar-divider"></div><div class="sidebar-note"><span class="dot"></span>本機離線運作<br/><small>排班結果須經單位審核</small></div></div></aside>
@@ -784,7 +784,7 @@ body.roster-working > :not(#runProgress):not(script){display:none!important}
 <dialog id="backupPassDialog"><form method="dialog"><label for="backupPass">加密備份密碼</label><input id="backupPass" type="password" autocomplete="current-password"><button value="open">還原</button><button value="cancel">取消</button></form></dialog>
 <div class="row"><div class="field"><label for="snapshotPicker">本機自動快照（最多 2 份）</label><select id="snapshotPicker"><option value="">目前沒有自動快照</option></select></div><button id="restoreSnapshot" type="button">還原選取的快照</button></div>
 <p class="help" id="snapshotNotice">自動快照約每 6 小時保留一份較舊的進度，最多兩份。快照與主存檔在同一個 App 儲存空間，不能替代外部備份。</p>
-<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v9.5 · 離線整合版</summary><p class="help">已實作初步禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官站一歇一、同時段、連續週日留守等。尚未以全部真實規章逐條驗收，尤其業參每週分布、長班時數公平。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。結果需人工審查。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
+<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v9.6 · 離線整合版</summary><p class="help">已實作初步禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官站一歇一、同時段、連續週日留守等。尚未以全部真實規章逐條驗收，尤其業參每週分布、長班時數公平。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。結果需人工審查。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
 </main></div>
 
 <nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
@@ -792,7 +792,8 @@ body.roster-working > :not(#runProgress):not(script){display:none!important}
 
 
 
-<!-- v9.5 · 個人班表分享：每人「哪幾天站哪一班」的文字，可複製或分享到 LINE；可單人或全部人員。
+<!-- v9.6 · 紀錄列表、人員查詢依日期由小到大排列；同一天的班次依時間先後。
+v9.5 · 個人班表分享：每人「哪幾天站哪一班」的文字，可複製或分享到 LINE；可單人或全部人員。
 v9.4 · 手機操作整理：輸入框不再自動放大、班表日期列固定在上方、左右滑動換日、「今天」按鈕、時段不斷行、紀錄表不超出畫面。
 v9.3 · 人員查詢：快速找出某人的休假與勤務紀錄、本月班次，可直接修改或刪除。
 v9.2 · 人力缺口試算（怎麼補缺班最有效）；精算結果的次要項目顯示「已改善／未再改善」，手機提示。
@@ -4384,7 +4385,7 @@ function downloadReadonly(){
  }catch(e){$('shareStatus').textContent='⚠ '+e.message;}
 }
 function readonlyPlainText(){
- const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v9.5','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
+ const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v9.6','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
  for(const pool of ['door','officer']){
   rows.push('',`【${pool==='door'?'大門衛哨':'安全士官'}】`);
   let prev='';for(const r of p[pool]){
@@ -5125,7 +5126,7 @@ function recordRowsFor(cat,person){
   const token=String((cat==='history'?row.fields[3]:row.fields[0])||'').trim();
   if(token===person.id||token===person.name)out.push(row);
  });
- return out;
+ return out.sort(byRecordDate(cat));
 }
 function renderLookupMatches(){
  const box=$('lookupMatches'),q=$('lookupQuery').value.trim().toLocaleLowerCase();
@@ -5151,7 +5152,7 @@ function renderLookup(){
  const monthKey=last&&last.m?`${last.m.month.y}-${pad(last.m.month.m)}`:'';
  const staff=monthKey===activeMonth?last.m.staff[p.pool].find(x=>x.id===p.id):null;
  if(staff){
-  const sol=last.solutions[p.pool],mine=sol.tasks.filter(t=>sol.res.get(t.key)?.key===staff.key);
+  const mine=personShifts(p.pool,staff);
   const pts=burdenOn()?mine.reduce((a,t)=>a+burdenScaled(p.pool,t)/2,0):null;
   html+=`<h4>本月班次（${mine.length} 班${pts!==null?'，勤務點數 '+pts.toFixed(1):''}）</h4>`+
    (mine.length?`<ul class="lookup-shifts">${mine.map(t=>`<li>${dateText(t.day).slice(5)}（${wd(t.day)}）${fmt(t)}${t.holiday?' <span class="tag">假日</span>':''}</li>`).join('')}</ul>`:'<p class="help">本月沒有排到班。</p>')+
@@ -5177,10 +5178,19 @@ function renderLookup(){
  box.querySelectorAll('[data-lk-edit]').forEach(b=>b.onclick=()=>{const [cat,idx]=b.dataset.lkEdit.split('|');currentCat=cat;editRecord(Number(idx));$('recordStatus').textContent='正在修改 '+p.name+' 的'+recordDefs[cat].title+'紀錄；改好按「儲存這筆修改」。';});
  box.querySelectorAll('[data-lk-del]').forEach(b=>b.onclick=()=>{const [cat,idx]=b.dataset.lkDel.split('|');currentCat=cat;deleteRecord(Number(idx));$('recordStatus').textContent='✅ 已刪除 '+p.name+' 的 1 筆'+recordDefs[cat].title+'紀錄；15 秒內可按下方撤銷。';});
 }
+// 紀錄依日期由小到大（沒有日期的排最後；同日維持原輸入順序）
+function recordDateKey(r,cat){
+ const shift=cat==='history'?1:cat==='exempt'?2:1;
+ const p=String(r.fields[shift]||'').trim().replace(/[年月.\-]/g,'/').replace(/日/g,'').split('/').map(Number);
+ if(p.length===3&&p.every(Number.isFinite))return p[0]*10000+p[1]*100+p[2];
+ if(p.length===2&&p.every(Number.isFinite))return Number(activeMonth.slice(0,4))*10000+p[0]*100+p[1];
+ return Infinity;
+}
+function byRecordDate(cat){return (a,b)=>{const x=recordDateKey(a,cat),y=recordDateKey(b,cat);return x===y?0:x<y?-1:1;};}
 function renderRecords(){
  try{renderLookup();}catch(e){console.warn('lookup',e);}
  const source=$(currentCat).value.split(/\r?\n/);
- const rows=source.map((raw,i)=>({raw,idx:i,fields:csvFields(raw)})).filter(r=>r.raw.trim()&&!r.raw.trim().startsWith('#')&&!skipHeader(r));
+ const rows=source.map((raw,i)=>({raw,idx:i,fields:csvFields(raw)})).filter(r=>r.raw.trim()&&!r.raw.trim().startsWith('#')&&!skipHeader(r)).sort(byRecordDate(currentCat));
  $('recordCount').textContent=rows.length+' 筆';$('recordStatus').textContent='';
  if(!rows.length){$('recordList').innerHTML='<div class="empty-state">尚無紀錄。</div>';return;}
  $('recordList').innerHTML=`<div class="tablewrap smalltable"><table><thead><tr><th>#</th><th>紀錄</th><th>操作</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(displayRecord(r,currentCat))}</td><td><button type="button" class="mini" data-edit="${r.idx}">修改</button> <button type="button" class="mini danger" data-delete="${r.idx}">刪除</button></td></tr>`).join('')}</tbody></table></div>`;
@@ -5197,7 +5207,7 @@ function editRecord(i){const fields=csvFields($(currentCat).value.split(/\r?\n/)
  if(currentCat==='carry')$('carryNum').value=fields[1]||'0';
  const shift=currentCat==='history'?1:currentCat==='exempt'?2:1;
  $('dateStart').value=dateDisplay(fields[shift]);$('dateEnd').value=dateDisplay(fields[shift+1]);
- renderRecordEditor();$('recordStatus').textContent='正在修改第 '+(i+1)+' 行';$('recordSubmit').scrollIntoView({block:'nearest',behavior:'smooth'});
+ renderRecordEditor();$('recordStatus').textContent='正在修改這筆紀錄；改好按「儲存這筆修改」。';$('recordSubmit').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 function deleteRecord(i){let a=$(currentCat).value.split(/\r?\n/);if(i<0||i>=a.length)return;
  const snapshot=beforeDelete();a.splice(i,1);$(currentCat).value=a.join('\n');editingLine=null;

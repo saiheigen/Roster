@@ -1,0 +1,6 @@
+node_modules/
+*.tsv
+*golden*.json
+*report*.json
+備份*
+*.backup.json

@@ -1,0 +1,8 @@
+{
+  "name": "roster-test-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "哨務工作台回歸測試包",
+  "scripts": { "test": "node run.js" },
+  "dependencies": { "playwright": "^1.47.0" }
+}
