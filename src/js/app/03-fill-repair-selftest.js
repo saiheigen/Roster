@@ -1,4 +1,4 @@
-// #region 初排、補班與公平
+// #region 初排、補班、公平調整與內建規則自測
 function solvePool(m,pool,pins={},opts={}){const pp=m.staff[pool],tasks=m.tasks[pool];const options=new Map(),availability=new Map();
  for(const p of pp)availability.set(p.key,0);
  for(const t of tasks){let cs=[];for(const p of pp)if(!staticReason(p,t)){cs.push(p);availability.set(p.key,availability.get(p.key)+1);}options.set(t.key,cs);}

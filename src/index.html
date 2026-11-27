@@ -13,11 +13,12 @@
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="哨務工作台" name="apple-mobile-web-app-title"/>
 <title>哨務工作台 v10.1｜離線整合版</title>
-<style><!--@include src/css/base.css--></style>
-<style><!--@include src/css/progress.css--></style><style><!--@include src/css/ios-controls.css--></style>
-<style><!--@include src/css/views.css--></style>
-<style><!--@include src/css/header-controls.css--></style>
-<style><!--@include src/css/touch-mobile.css--></style></head>
+<style>
+<!--@include src/css/base.css-->
+<!--@include src/css/controls.css-->
+<!--@include src/css/touch.css-->
+<!--@include src/css/theme.css-->
+</style></head>
 <body><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
 <h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
 <p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
@@ -237,32 +238,7 @@
 
 <nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
 <div class="undo-toast hidden" id="undoToast" role="status"><span id="undoText">已刪除</span><button id="undoDelete" type="button">↶ 撤銷刪除</button></div>
-
-
-
-<!-- v10.1 · 勤務板視覺：夜哨藍／勤務綠配色、班表時段牌（夜間深色、白天淺色、缺班琥珀斜紋）、班表頁精簡（品質摘要一行、試算與修復移到班表下方）、移除規則待驗收提示（已由單位核對）。
-v10.0 · 網頁版整合：大門與安官同時精算（兩個背景執行緒，約快 40%）；離線快取與主畫面 App（manifest、圖示）；請瀏覽器長期保存資料；「依人員」可直接複製／分享班表並跳到該員紀錄。
-v9.6 · 紀錄列表、人員查詢依日期由小到大排列；同一天的班次依時間先後。
-v9.5 · 個人班表分享：每人「哪幾天站哪一班」的文字，可複製或分享到 LINE；可單人或全部人員。
-v9.4 · 手機操作整理：輸入框不再自動放大、班表日期列固定在上方、左右滑動換日、「今天」按鈕、時段不斷行、紀錄表不超出畫面。
-v9.3 · 人員查詢：快速找出某人的休假與勤務紀錄、本月班次，可直接修改或刪除。
-v9.2 · 人力缺口試算（怎麼補缺班最有效）；精算結果的次要項目顯示「已改善／未再改善」，手機提示。
-v9.1 · 安官改為可連站兩天（一天一班、跨日休息六小時）；有缺班時照樣平衡勤務負擔點數；每個缺班列出無人可排的原因。
-v9.0 · 勤務負擔點數（取代艱苦哨計算）與跨月點數帳。
-v8.0 · 整合介面：移除線上求解器與深度搜尋，精算合併為單一按鈕，分享合併為單一按鈕。
-v7.9.x · 單一規則表、假日公平進精算、精算讀規則表（離線引擎為 HiGHS MILP，非 CP-SAT）。
-v7.4 · 整合離線精算引擎（HiGHS），沿用 v6.9 的班表巡檢與存檔格式。
-     v6.9.0 · 輕量離線版、加密存檔、假期公平與操作者紀錄。
-     v6.8.7 · 日期置中、名冊與跨月資料防錯、查班局部更新。
-     v6.8.6 · 縮小頁首月份，將日期與前後日整合成單列。
-     v6.8.5 · 整合每日、人員與缺班查詢；依狀態顯示局部修班。
-     v6.8.4 · 依勤務切換同日負擔與人力統計。
-v6.8.3 · 修正手機月份與停用日期輸入框寬度。
-v6.8.2 · 自動分組精修與保存、簡化班表頁、修正備份還原失敗處理。
-v6.8.1 · 2026-11-18
-維護索引：搜尋「#region」可定位程式區段。
-變更：抽出離線求解資料轉換；整合結果導覽與日期事件；合併重複檢查及首頁入口。
--->
+<!-- 更新紀錄見 CHANGELOG.md；程式原始碼在 src/，請改 src/ 後執行 node build.js -->
 <script type="text/plain" id="zeroModule"><!--@include vendor/highs/highs.js--></script>
 <script type="text/plain" id="zeroBinary"><!--@base64 vendor/highs/highs.wasm--></script>
 <script type="text/plain" id="zeroLicense"><!--@include vendor/highs/LICENSE.txt--></script>

@@ -1,4 +1,4 @@
-// #region 勤務負擔點數帳、離線精算 Worker
+// #region 勤務負擔點數帳與精算請求
 
 // 跨月點數帳：每個已封存月份記錄「實得點數 − 依班數應得點數」（×2 單位）；本月目標扣除之前的累計差額。
 function burdenLedgerRaw(pool,beforeMonth=activeMonth){
