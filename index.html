@@ -12,7 +12,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="哨務工作台" name="apple-mobile-web-app-title"/>
-<title>哨務工作台 v10.1｜離線整合版</title>
+<title>哨務工作台 v10.2｜離線整合版</title>
 <style>
 :root{font-synthesis:none}
 *{box-sizing:border-box}
@@ -833,11 +833,20 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,su
 #viewDay[aria-pressed="true"],#viewPerson[aria-pressed="true"]{color:var(--duty-green)!important;border-bottom-color:var(--duty-green)!important}
 .day-controls button{color:var(--duty-ink)}
 
+/* 新版本提示：固定在畫面下方（手機在底部導覽列上方） */
+.update-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:10px;
+ max-width:min(560px,calc(100vw - 32px));padding:10px 12px 10px 16px;border-radius:14px;background:var(--duty-ink);color:#fff;box-shadow:0 8px 24px rgba(19,40,59,.28)}
+.update-bar[hidden]{display:none!important}
+.update-bar span{flex:1;min-width:0;font-size:14px;line-height:1.4}
+.update-bar button{flex:0 0 auto;min-height:40px;padding:0 14px;border-radius:10px}
+.update-bar .ghost{background:transparent!important;color:#c9d6e2!important;border:1px solid rgba(255,255,255,.25)!important}
+@media (max-width:760px){.update-bar{left:16px;right:16px;transform:none;max-width:none;bottom:calc(84px + env(safe-area-inset-bottom))}}
+
 </style></head>
 <body><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
 <h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
 <p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
-<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.1</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
+<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.2</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
 <div aria-live="polite" id="quickMessage" role="alert"></div>
 <div class="layout">
 <aside class="sidebar"><div class="box"><div class="label">工作區</div><nav aria-label="網站功能" class="stepnav"><button class="active" data-step="home"><span class="circle">◫</span> 總覽</button><button data-step="setup"><span class="circle">♙</span> 人員名冊</button><button data-step="records"><span class="circle">▦</span> 休假與勤務</button><button data-step="results"><span class="circle">≡</span> 每日班表</button></nav><div class="sidebar-divider"></div><div class="sidebar-note"><span class="dot"></span>本機離線運作<br/><small>排班結果須經單位審核</small></div></div></aside>
@@ -1048,7 +1057,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,su
 <dialog id="backupPassDialog"><form method="dialog"><label for="backupPass">加密備份密碼</label><input id="backupPass" type="password" autocomplete="current-password"><button value="open">還原</button><button value="cancel">取消</button></form></dialog>
 <div class="row"><div class="field"><label for="snapshotPicker">本機自動快照（最多 2 份）</label><select id="snapshotPicker"><option value="">目前沒有自動快照</option></select></div><button id="restoreSnapshot" type="button">還原選取的快照</button></div>
 <p class="help" id="snapshotNotice">自動快照約每 6 小時保留一份較舊的進度，最多兩份。快照與主存檔在同一個 App 儲存空間，不能替代外部備份。</p>
-<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.1 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
+<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.2 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
 </main></div>
 
 <nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
@@ -1481,6 +1490,45 @@ function offlineAssignments(result,src,people){
 // 精算引擎使用的班與班規則參數。頁面每次呼叫精算時，都會把規則表（GUARD_SHIFT_RULES）隨資料傳入。
 var __shiftRules={door:{maxConsecutiveDays:2,restHours:6,dailyMaxHours:6,dailyMaxShifts:3,twoDayMaxShifts:3},officer:{minGapDays:1,maxConsecutiveDays:2,restHours:6},shared:{sameSlotWindowDays:2,sundayStayGapWeeks:1}};
 function useShiftRules(r){if(r)__shiftRules=r;}
+// 一鍵排班（draft）的確定性：求解器的工作量改用「單純形法迭代次數」計算（在求解器回呼時檢查，超過預算就中斷），
+// 不看時鐘，所以同一份資料在快慢不同的裝置上得到相同結果。原本的時間上限放寬 DRAFT_SAFETY 倍，只當安全網；
+// 真的被時間截斷時記為 __safetyHit（結果可能因裝置而異，畫面會註明）。「精算並證明最優」不受影響。
+var __draft=false,__safetyHit=false,__stageSeconds=null;
+const DRAFT_ITERS_PER_SECOND=1200,DRAFT_STAGE_SECONDS=180,DRAFT_SAFETY=6,SAFETY_SCALE=1;
+// 主要階段（不設時間上限的整體求解）在一鍵排班時的工作量：缺班、同日多班、個人班數公平各 120 秒，其餘 15 秒（以桌機速度換算），
+// 改用迭代次數計算，與裝置快慢無關。
+function draftStage(seconds){__stageSeconds=seconds;}
+function draftOptions(o){
+ if(!__draft)return o;
+ return {...o,time_limit:((o&&o.time_limit)||__stageSeconds||DRAFT_STAGE_SECONDS)*DRAFT_SAFETY*SAFETY_SCALE};
+}
+// 回傳 mipInterrupt 回呼：累計迭代次數超過預算就中斷（只有一鍵排班時才加）
+function draftBudget(highs,o){
+ if(!__draft)return {};
+ const budget=((o&&o.time_limit)||__stageSeconds||DRAFT_STAGE_SECONDS)*DRAFT_ITERS_PER_SECOND;
+ return {[highs.constants.callbackType.mipInterrupt](e){if(Number(e.data.mip_total_lp_iterations||0)>budget)e.interrupt();}};
+}
+function useDraftLimits(highs,draft){
+ __draft=!!draft;__safetyHit=false;if(!__draft)return;
+ const solve=highs.solve.bind(highs);
+ highs.solve=(lp,o)=>{
+  if(!/\n\s*(binary|bin|general|gen|integer|integers)\s*\n/i.test(lp)){
+   const r=solve(lp,draftOptions(o));if(r.Status==='Time limit reached')__safetyHit=true;return r;
+  }
+  const model=highs.createModel({format:'lp',data:lp});
+  try{
+   model.options.set(draftOptions(o||{}));
+   const r=model.run(draftBudget(highs,o)),S=highs.constants.modelStatus;
+   if(r.modelStatus===S.timeLimit){__safetyHit=true;return {Status:'Time limit reached'};}
+   if(r.modelStatus===S.infeasible)return {Status:'Infeasible'};
+   if(r.modelStatus!==S.optimal)return {Status:'Interrupted'};
+   const n=model.getDimensions().numCols,x=model.getSolution().colValue,Columns={};
+   for(let i=0;i<n;i++)Columns[model.getColName(i)]={Primal:x[i]};
+   return {Status:'Optimal',Columns,ObjectiveValue:model.getObjectiveValue()};
+  }finally{model.dispose();}
+ };
+}
+function workLimitError(){const e=Error('一鍵排班運算量已達上限');e.workLimit=true;return e;}
 function stayRepeat(gap){const w=__shiftRules.shared.sundayStayGapWeeks;return gap>0&&gap%7===0&&gap<=7*w;}
 function doorDayCap(){const D=__shiftRules.door;return Math.min(D.dailyMaxShifts,Math.floor(D.dailyMaxHours/2));}
 function edgeHistory(person,days){
@@ -1574,11 +1622,16 @@ self.onmessage=async ({data})=>{
    const instance=new WebAssembly.Instance(compiled,imports);
    ready(instance,compiled);return instance.exports;
   }});
+  useDraftLimits(highs,data.frame&&data.frame.draft);
   self.postMessage({type:'ready',id:data.id});
   const solve=data.frame.pool==='officer'?solveOfficerPrecision:precisionSolve;
   const result=solve(highs,data.frame,progress=>self.postMessage({type:'progress',id:data.id,progress}));
   self.postMessage({type:'result',id:data.id,result});
- }catch(e){self.postMessage({type:'error',id:data.id,error:String(e.message||e)});}
+ }catch(e){
+  // 一鍵排班的運算量上限：保留已回報的最佳班表（頁面已逐一巡檢），結果與裝置快慢無關
+  if(e&&e.workLimit)self.postMessage({type:'result',id:data.id,result:{status:'WORK_LIMIT',workLimited:true,safetyHit:__safetyHit}});
+  else self.postMessage({type:'error',id:data.id,error:String(e.message||e)});
+ }
 };
 function incompatibleDoorSlots(a,b){
  const gap=Math.abs(a.day-b.day);
@@ -1814,7 +1867,7 @@ function searchDoorTimes(src,initial,floor,onBest){
  let best=initial,bestScore=doorObjectives(src,best)[4],seed=61937;
  const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  const clashes=tasks.map((t,j)=>tasks.flatMap((u,k)=>k!==j&&incompatibleDoorSlots(t,u)?[k]:[]));
- const deadline=Date.now()+11000,OFF=Math.max(2,__shiftRules.door.maxConsecutiveDays);
+ const deadline=Date.now()+11000*(__draft?DRAFT_SAFETY*SAFETY_SCALE:1),OFF=Math.max(2,__shiftRules.door.maxConsecutiveDays);
  function shift(w,t,sign){
   if(t.night)w.n+=sign;
   if(t.noon)w.m+=sign;
@@ -1863,6 +1916,7 @@ function searchDoorTimes(src,initial,floor,onBest){
   }
   if(changed)onBest(best);
  }
+ if(__draft&&Date.now()>=deadline)__safetyHit=true;
  return best;
 }
 
@@ -1870,7 +1924,7 @@ function searchDoorTimes(src,initial,floor,onBest){
 function solveDoorModel(highs,definition,seed,options,onWitness){
  const model=highs.createModel({format:'lp',data:definition.lp});
  try{
-  model.options.set(options);
+  model.options.set(draftOptions(options));
   const names=Array.from({length:model.getDimensions().numCols},(_,i)=>model.getColName(i));
   const xcols=[];
   names.forEach((v,i)=>{
@@ -1878,7 +1932,7 @@ function solveDoorModel(highs,definition,seed,options,onWitness){
    if(!m)return;
    const p=Number(m[1]),j=Number(m[2]);xcols.push([i,j,p]);
   });
-  const r=model.run({[highs.constants.callbackType.mipImprovingSolution](e){
+  const r=model.run({...draftBudget(highs,options),[highs.constants.callbackType.mipImprovingSolution](e){
    const vector=e.data.mip_solution;
    if(!vector||vector.length!==names.length)return;
    const a=Array(seed.length).fill(-1);
@@ -1887,6 +1941,8 @@ function solveDoorModel(highs,definition,seed,options,onWitness){
   }});
   const states=highs.constants.modelStatus;
   if(r.modelStatus===states.infeasible)return {Status:'Infeasible'};
+  if(__draft&&r.modelStatus===states.timeLimit)__safetyHit=true;
+  if(__draft&&[states.unknown,states.solutionLimit,states.timeLimit,states.interrupted].includes(r.modelStatus))throw workLimitError();
   if(r.modelStatus!==states.optimal)throw Error('精算引擎回報 '+r.modelStatus);
   const vector=model.getSolution().colValue,columns={};
   names.forEach((v,i)=>columns[v]={Primal:vector[i]});
@@ -2195,6 +2251,7 @@ function solveOfficerPrecision(highs,src,send){
  if(!proven){
   emit('計算全月可填的最多安官班次');
   const model=officerAssignmentModel(f,{stage:0});
+  draftStage(120);
   const r=solveDoorModel(highs,model,best,opt,consider);
   if(r.Status!=='Optimal')throw Error('安官缺班證明未完成');
   consider(model.read(r));if(Math.abs(r.ObjectiveValue-score[0])>1e-6)throw Error('安官缺班數複核失敗');
@@ -2214,6 +2271,7 @@ function solveOfficerPrecision(highs,src,send){
  }
  if(score[1]>low){
   emit('正在證明個人班數偏差的最小值');
+  draftStage(120);
   const def=officerAssignmentModel(f,{stage:1,filled}),r=solveDoorModel(highs,def,best,opt,consider);
   if(r.Status!=='Optimal')throw Error('安官班數偏差證明未完成');
   consider(def.read(r));if(Math.abs(r.ObjectiveValue-score[1])>1e-6)throw Error('安官班數偏差複核失敗');
@@ -2238,6 +2296,32 @@ function solveOfficerPrecision(highs,src,send){
    return added;
   };
   addPts(best);
+  // 大型鄰域搜尋（LNS）：每輪只讓幾位安官（點數偏高與偏低各半）彼此重新分配手上的班，其他人完全不動，
+  // 用整數規劃求這一小組的最佳分配。小問題幾秒內解完，能穩定改善點數；但只是改善，不構成整體最優證明。
+  // 用時間預算的前 45%；剩下的時間照舊做整體證明（從改善後的班表出發，較容易完成）。
+  {
+   const lnsEnd=Date.now()+src.pointsSeconds*1000*0.45;
+   let seed=40503,stall=0,rounds=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+   const dev=a=>{const d=people.map(w=>filled*(w.burdenOffset||0));a.forEach((p,j)=>{if(p>=0&&live(j))d[p]+=filled*src.points[j]-PT;});return d;};
+   const take=(list,k)=>{const c=list.slice(),out=[];while(out.length<k&&c.length)out.push(c.splice(Math.floor(rnd()*c.length),1)[0]);return out;};
+   const size=Math.min(people.length,6),third=Math.max(3,Math.ceil(people.length/3));
+   while(rounds<300&&stall<15&&score[2]>1e-9&&Date.now()<lnsEnd-500){
+    rounds++;
+    const d=dev(best),order=people.map((_,p)=>p).sort((x,y)=>d[y]-d[x]||x-y);
+    const group=new Set([...take(order.slice(0,third),size>>1),...take(order.slice(-third),size-(size>>1))]);
+    const before=score[2];
+    for(let again=0;again<3;again++){
+     const left=(lnsEnd-Date.now())/1000;if(left<0.5)break;
+     const def=officerAssignmentModel(f,{stage:2,filled,l1:score[1],cuts,fixHoles:holeSet,choices:(j,p)=>best[j]===p||(group.has(p)&&group.has(best[j]))});
+     let r;try{r=solveDoorModel(highs,def,best,{...opt,time_limit:Math.min(8,left)},consider);}catch(_){break;}
+     if(r.Status!=='Optimal')break;
+     const a=def.read(r);consider(a);
+     // 近似目標（切平面）在這一小組已最佳；若真實點數沒改善，補上切平面再解一次
+     if(score[2]<before-1e-9||!addPts(a))break;
+    }
+    if(score[2]<before-1e-9){stall=0;emit('安官勤務負擔點數：小組重新分配改善到 '+score[2].toFixed(2)+'（第 '+rounds+' 輪）');}else stall++;
+   }
+  }
   for(let iter=0;;iter++){
    if(iter>400)throw Error('安官勤務負擔點數未能完成證明');
    emit('正在證明安官勤務負擔點數最優');
@@ -2290,6 +2374,7 @@ function solveOfficerPrecision(highs,src,send){
   for(;;){
    emit('正在證明安官艱苦哨最優'+(floor?'，已知下限 '+floor.toFixed(2):''));
    const def=officerAssignmentModel(f,{stage:2,filled,l1:score[1],cuts});
+   draftStage(15);
    const r=solveDoorModel(highs,def,best,opt,consider);
    if(r.Status!=='Optimal')throw Error('安官艱苦哨證明未完成');
    const a=def.read(r);consider(a);
@@ -2433,6 +2518,7 @@ function precisionSolve(highs,src,send){
    src.stageLowerBound=lb!==null&&lb<score[proven]?{stage:proven,value:lb}:null;
   }else src.stageLowerBound=null;
   emit('正在證明'+labels[proven]+'的最小值');
+  draftStage(proven<=2?120:15);
   const m=precisionModel(src,proven,score.slice(0,proven)),r=solveDoorModel(highs,m,best,options,publish);
   if(r.Status!=='Optimal')throw Error(labels[proven]+'求解狀態 '+r.Status);
   const a=m.read(r),s=doorObjectives(src,a);
@@ -2534,6 +2620,7 @@ function precisionSolve(highs,src,send){
    for(;;){
     emit('正在證明艱苦哨公平的最小值'+(fairFloor===null?'':'，理論下限 '+fairFloor.toFixed(2)));
     const model=precisionModel(src,4,score.slice(0,4),{night:n,noon:m},cuts);
+    draftStage(15);
     const r=solveDoorModel(highs,model,best,options,publish);
     if(r.Status==='Infeasible')break;
     if(r.Status!=='Optimal')throw Error('艱苦哨求解狀態 '+r.Status);
@@ -2745,8 +2832,8 @@ function independentScheduleAudit(model,solutions,pins={},previousSundayRule=fal
     let blocked=false;
     for(const rule of (GUARD_EVENT_RULES[e.type]||[])){
      if(rule.pool&&rule.pool!==pool)continue;
-     const covered=[];for(let x=anchor[rule.r[0]]+rule.r[1];x<=anchor[rule.r[2]]+rule.r[3];x++)covered.push(x);
-     if(!covered.includes(d))continue;
+     // 永久的勤務資格限制以 ±999999 天表示，因此用區間比較，不逐日列舉
+     if(d<anchor[rule.r[0]]+rule.r[1]||d>anchor[rule.r[2]]+rule.r[3])continue;
      if(rule.weekend&&!(wday(d)===0||wday(d)===6))continue;
      if(rule.slots==='night'&&!(t.start<6||t.start>=22))continue;
      if(rule.slots==='noon'&&t.start!==12)continue;
@@ -4055,26 +4142,19 @@ async function runPrecision(pool,draft=null,group=null){
  const view=draft?.view||group?.view||openProgress(month+' '+label+'精算','停止並查看班表',()=>{precisionStopAll=true;stopOffline('已停止精算，已保留通過巡檢的班表。');});
  const shared=draft||group,paint=(frac,text)=>{if(shared?.paint)shared.paint(pool,frac,text);else paintProgress(view,(draft?.start||0)+(draft?.span||100)*frac,text);};
  paint(0,'準備'+label+'精算');
- let timedOut=false,problem='';
- let timer=null,budgetPhase=null,overall=null;
+ let timedOut=false,problem='',safetyHit=false;
+ let overall=null;
  const l1Stage=officer?1:2;
- // 一鍵排班時每個勤務的精算最多 4 分鐘；時間到保留已通過巡檢的班表，可之後再按「精算並證明最優」補完。
- if(draft)overall=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;stopOffline(label+'精算已達一鍵排班時限。',job);}},240000);
- function startFairnessBudget(proven){
-  if(!draft||proven<l1Stage)return;
-  const phase=proven===l1Stage?'l1':burdenOn()&&proven>=labels.length-2?'points':'rest';
-  if(budgetPhase===phase)return;
-  if(timer!==null)clearTimeout(timer);
-  budgetPhase=phase;
-  timer=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;stopOffline(label+'公平精算已達時限。',job);}},phase==='l1'?180000:15000);
- }
+ // 一鍵排班的運算量由背景引擎以「求解器迭代次數」限制（與裝置快慢無關，同資料結果相同）。
+ // 這裡的 10 分鐘只是安全網：真的觸發時結果會因裝置而異，畫面會註明。
+ if(draft)overall=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;safetyHit=true;stopOffline(label+'精算已達一鍵排班時間上限。',job);}},600000*SAFETY_SCALE);
  const snapshot={month,inputs,pins:pinSig,signature:precisionPoolSignature(base.solutions,pool),proven:0,total:labels.length,labels:labels.slice(),done:false,timedOut:false};precisionSnapshots[pool]=snapshot;
  offlineJobs.add(job);$('offlineStop').hidden=false;precisionButtons(true);panel.hidden=false;delete panel.dataset.status;
  precisionPart(pool,'Rows').replaceChildren();report.textContent=month+' '+label+'｜正在核對本機班表';
  status.textContent=label+'精算可隨時停止，通過獨立巡檢的改善會自動存檔。';
  try{
   verifyOptimization(base.m,base.solutions,pins);
-  const src={...solverBuildRequest(base.m,base.solutions).pools[pool],pool,holidaySeconds:draft?0:60,pointsSeconds:draft?0:120},initial=objectives(src,src.baseline);
+  const src={...solverBuildRequest(base.m,base.solutions).pools[pool],pool,draft:!!draft,holidaySeconds:draft?0:60,pointsSeconds:draft?0:120},initial=objectives(src,src.baseline);
   latest=initial;
   const cells=labels.map((label,i)=>{
    const row=document.createElement('tr');
@@ -4117,18 +4197,20 @@ async function runPrecision(pool,draft=null,group=null){
     renderChangeHistory();
     if(!saveAutoNow())saveWarning='。本機自動存檔失敗，請使用「備份全部」';}
    }
-   latest=q;certified=progress.proven;snapshot.proven=certified;startFairnessBudget(certified);
+   latest=q;certified=progress.proven;snapshot.proven=certified;
    cells.forEach((set,i)=>set(q[i],i<certified));
    report.textContent=month+' '+label+'｜'+progress.phase+'（'+certified+'/'+labels.length+'）'+saveWarning;
    job.summary=report.textContent;
    paint(certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');
   };
   const solved=await solveOfflinePool(job,url,bytes,src,onProgress);check();
+  if(solved?.safetyHit)safetyHit=true;
+  if(solved?.workLimited){timedOut=true;stopOffline(label+'精算已達一鍵排班運算量上限。',job);throw Error('已達一鍵排班運算量上限');}
   const holidaySkipped=!!solved?.holidayUnproven&&(certified===labels.length-1||(!!solved?.pointsUnproven&&certified===labels.length-2));
   if(certified!==labels.length&&!holidaySkipped)throw Error('求解器未完成所有目標的證明');
   let holidayNote='';
   try{
-   const polished=holidaySkipped?(src.points?pointsPolish(base,pool,src,pins,objectives):holidayPolish(base,pool,src,pins,objectives)):{changed:false,before:0,after:0,assignments:[]};
+   const polished=holidaySkipped?(src.points?pointsPolish(base,pool,src,pins,objectives):holidayPolish(base,pool,src,pins,objectives,draft?4000*DRAFT_SAFETY*SAFETY_SCALE:4000)):{changed:false,before:0,after:0,assignments:[]};
    if(polished.changed){
     check();
     const previous=base.solutions,ids=compactAssignments(previous);
@@ -4167,16 +4249,17 @@ async function runPrecision(pool,draft=null,group=null){
   status.textContent=panel.dataset.status=label+'精算完成，'+(holidaySkipped&&!holidayProvenByBound?(labels.length-(solved?.pointsUnproven?2:1))+' 項目標已證明最優（'+why+'）。':labels.length+' 項目標均已證明最優（含假日班公平）。')+holidayNote+saveWarning;
  }catch(e){if(offlineJobs.has(job)){problem=label+'精算未完成：'+e.message;panel.dataset.status=label+'精算已中止。'+e.message;status.textContent=label+'精算已中止。'+e.message+'。'+saveWarning;report.textContent=month+' '+label+'｜已中止，已完成 '+certified+'/'+labels.length+' 項證明。'+saveWarning;}}
  finally{
-  clearTimeout(timer);if(url)URL.revokeObjectURL(url);
+  if(url)URL.revokeObjectURL(url);
   if(offlineJobs.has(job)){offlineJobs.delete(job);if(!offlineJobs.size){$('offlineStop').hidden=true;precisionButtons(false);}}
   if(!draft&&!group){closeProgress(view);if(last)renderEasyDayView();}
   if(finalizeCells)finalizeCells();
  }
  if(overall!==null)clearTimeout(overall);
- snapshot.proven=Math.max(snapshot.proven||0,certified||0);snapshot.done=true;snapshot.timedOut=!!timedOut;
+ snapshot.proven=Math.max(snapshot.proven||0,certified||0);snapshot.done=true;snapshot.timedOut=!!timedOut;snapshot.safetyHit=!!safetyHit;
  {const rec=appStore.months[activeMonth];if(rec&&snapshot.month===activeMonth){rec.proof={...(rec.proof||{}),[pool]:{...snapshot}};if(typeof saveAutoSoon==='function')saveAutoSoon();}}
  if(typeof renderQualitySummary==='function')renderQualitySummary();
- return timedOut?(certified<=l1Stage?'⚠ '+label+(certified<l1Stage?'缺班或同日多班':'個人班數公平')+'尚未完成最佳化（已達一鍵排班時限），建議到班表頁「最佳化與修復」按「精算並證明最優」。':label+(burdenOn()?'勤務負擔點數':'艱苦哨')+'／連站等次要公平項目達時限，已保留已驗證的班表。'):problem;
+ const device=safetyHit?'（本次運算受裝置速度影響，換一台裝置重排可能略有不同）':'';
+ return (timedOut?(certified<=l1Stage?'⚠ '+label+(certified<l1Stage?'缺班或同日多班':'個人班數公平')+'尚未完成最佳化（已達一鍵排班運算上限），建議到班表頁「最佳化與修復」按「精算並證明最優」。':label+(burdenOn()?'勤務負擔點數':'艱苦哨')+'／連站等次要公平項目已達一鍵排班運算上限，已保留已驗證的班表。'):problem)+(device&&(timedOut||problem)?device:device?'⚠ '+label+device:'');
 }
 
 // #endregion
@@ -4615,7 +4698,7 @@ function downloadReadonly(){
  }catch(e){$('shareStatus').textContent='⚠ '+e.message;}
 }
 function readonlyPlainText(){
- const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.1','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
+ const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.2','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
  for(const pool of ['door','officer']){
   rows.push('',`【${pool==='door'?'大門衛哨':'安全士官'}】`);
   let prev='';for(const r of p[pool]){
@@ -6525,15 +6608,42 @@ $('month').value=todayMonth();$('monthTop').value=todayMonth();
 initUX();
 initEasyUX();
 startProtectedStore();
+// 給「有新版本」提示用：運算或加密儲存進行中時先不要切換版本；切換前先把自動存檔寫入。
+window.rosterUpdateBlocker=()=>scheduleBusy||repairBusy||minimalBusy||offlineJobs.size||!$('runProgress').hidden?'正在排班或精算':
+ vault&&(encryptedWritePending||autoSaveTimer!==null)?'正在儲存資料':'';
+window.rosterFlushSave=()=>{if(!vault&&autoSaveTimer!==null)saveAutoNow();};
 // #endregion
 })();
 
 </script>
+<div class="update-bar" id="updateBar" hidden role="status"><span id="updateMsg">有新版本可以使用。</span><button type="button" class="primary" id="updateNow">更新</button><button type="button" class="ghost" id="updateLater">稍後</button></div>
 <script>
-// 網頁版（https）才啟用：離線快取、請瀏覽器長期保存本機資料。用 Documents 等直接開檔時不會執行。
+// 網頁版（https）才啟用：離線快取、新版本提示、請瀏覽器長期保存本機資料。用 Documents 等直接開檔時不會執行。
 (()=>{
  if(!/^https?:$/.test(location.protocol))return;
- if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+ if('serviceWorker' in navigator)window.addEventListener('load',async()=>{
+  let reg;try{reg=await navigator.serviceWorker.register('sw.js');}catch(_){return;}
+  const bar=document.getElementById('updateBar'),btn=document.getElementById('updateNow'),later=document.getElementById('updateLater'),msg=document.getElementById('updateMsg');
+  // 第一次安裝時沒有舊版本，不需要提示；只有「已有版本在用、新版本在等待」才提示
+  const offer=()=>{if(reg.waiting&&navigator.serviceWorker.controller&&bar){bar.hidden=false;msg.textContent='有新版本可以使用。';btn.disabled=false;}};
+  offer();
+  reg.addEventListener('updatefound',()=>{const w=reg.installing;w&&w.addEventListener('statechange',()=>{if(w.state==='installed')offer();});});
+  let reloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)return;reloading=true;location.reload();});
+  btn&&btn.addEventListener('click',()=>{
+   const busy=window.rosterUpdateBlocker?window.rosterUpdateBlocker():'';
+   if(busy){msg.textContent=busy+'，完成後再按「更新」。';return;}
+   if(!reg.waiting){bar.hidden=true;return;}
+   btn.disabled=true;msg.textContent='正在更新…';
+   try{window.rosterFlushSave&&window.rosterFlushSave();}catch(_){}
+   reg.waiting.postMessage('activate-update');
+  });
+  later&&later.addEventListener('click',()=>{bar.hidden=true;});
+  // 開著不關的分頁也會發現新版本（每 6 小時、以及從背景切回來時檢查）
+  const check=()=>reg.update().catch(()=>{});
+  setInterval(check,6*3600*1000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});
+ });
  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persisted().then(p=>p||navigator.storage.persist()).catch(()=>{});}catch(_){}
  const standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
  const hint=window.updatePwaHint=()=>{const h=document.getElementById('pwaHint');if(!h)return;const d=document.getElementById('door'),o=document.getElementById('officer');

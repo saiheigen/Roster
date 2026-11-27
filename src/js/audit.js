@@ -27,8 +27,8 @@ function independentScheduleAudit(model,solutions,pins={},previousSundayRule=fal
     let blocked=false;
     for(const rule of (GUARD_EVENT_RULES[e.type]||[])){
      if(rule.pool&&rule.pool!==pool)continue;
-     const covered=[];for(let x=anchor[rule.r[0]]+rule.r[1];x<=anchor[rule.r[2]]+rule.r[3];x++)covered.push(x);
-     if(!covered.includes(d))continue;
+     // 永久的勤務資格限制以 ±999999 天表示，因此用區間比較，不逐日列舉
+     if(d<anchor[rule.r[0]]+rule.r[1]||d>anchor[rule.r[2]]+rule.r[3])continue;
      if(rule.weekend&&!(wday(d)===0||wday(d)===6))continue;
      if(rule.slots==='night'&&!(t.start<6||t.start>=22))continue;
      if(rule.slots==='noon'&&t.start!==12)continue;

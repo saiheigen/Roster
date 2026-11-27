@@ -8,11 +8,16 @@ self.onmessage=async ({data})=>{
    const instance=new WebAssembly.Instance(compiled,imports);
    ready(instance,compiled);return instance.exports;
   }});
+  useDraftLimits(highs,data.frame&&data.frame.draft);
   self.postMessage({type:'ready',id:data.id});
   const solve=data.frame.pool==='officer'?solveOfficerPrecision:precisionSolve;
   const result=solve(highs,data.frame,progress=>self.postMessage({type:'progress',id:data.id,progress}));
   self.postMessage({type:'result',id:data.id,result});
- }catch(e){self.postMessage({type:'error',id:data.id,error:String(e.message||e)});}
+ }catch(e){
+  // 一鍵排班的運算量上限：保留已回報的最佳班表（頁面已逐一巡檢），結果與裝置快慢無關
+  if(e&&e.workLimit)self.postMessage({type:'result',id:data.id,result:{status:'WORK_LIMIT',workLimited:true,safetyHit:__safetyHit}});
+  else self.postMessage({type:'error',id:data.id,error:String(e.message||e)});
+ }
 };
 function incompatibleDoorSlots(a,b){
  const gap=Math.abs(a.day-b.day);
@@ -248,7 +253,7 @@ function searchDoorTimes(src,initial,floor,onBest){
  let best=initial,bestScore=doorObjectives(src,best)[4],seed=61937;
  const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
  const clashes=tasks.map((t,j)=>tasks.flatMap((u,k)=>k!==j&&incompatibleDoorSlots(t,u)?[k]:[]));
- const deadline=Date.now()+11000,OFF=Math.max(2,__shiftRules.door.maxConsecutiveDays);
+ const deadline=Date.now()+11000*(__draft?DRAFT_SAFETY*SAFETY_SCALE:1),OFF=Math.max(2,__shiftRules.door.maxConsecutiveDays);
  function shift(w,t,sign){
   if(t.night)w.n+=sign;
   if(t.noon)w.m+=sign;
@@ -297,6 +302,7 @@ function searchDoorTimes(src,initial,floor,onBest){
   }
   if(changed)onBest(best);
  }
+ if(__draft&&Date.now()>=deadline)__safetyHit=true;
  return best;
 }
 
@@ -304,7 +310,7 @@ function searchDoorTimes(src,initial,floor,onBest){
 function solveDoorModel(highs,definition,seed,options,onWitness){
  const model=highs.createModel({format:'lp',data:definition.lp});
  try{
-  model.options.set(options);
+  model.options.set(draftOptions(options));
   const names=Array.from({length:model.getDimensions().numCols},(_,i)=>model.getColName(i));
   const xcols=[];
   names.forEach((v,i)=>{
@@ -312,7 +318,7 @@ function solveDoorModel(highs,definition,seed,options,onWitness){
    if(!m)return;
    const p=Number(m[1]),j=Number(m[2]);xcols.push([i,j,p]);
   });
-  const r=model.run({[highs.constants.callbackType.mipImprovingSolution](e){
+  const r=model.run({...draftBudget(highs,options),[highs.constants.callbackType.mipImprovingSolution](e){
    const vector=e.data.mip_solution;
    if(!vector||vector.length!==names.length)return;
    const a=Array(seed.length).fill(-1);
@@ -321,6 +327,8 @@ function solveDoorModel(highs,definition,seed,options,onWitness){
   }});
   const states=highs.constants.modelStatus;
   if(r.modelStatus===states.infeasible)return {Status:'Infeasible'};
+  if(__draft&&r.modelStatus===states.timeLimit)__safetyHit=true;
+  if(__draft&&[states.unknown,states.solutionLimit,states.timeLimit,states.interrupted].includes(r.modelStatus))throw workLimitError();
   if(r.modelStatus!==states.optimal)throw Error('精算引擎回報 '+r.modelStatus);
   const vector=model.getSolution().colValue,columns={};
   names.forEach((v,i)=>columns[v]={Primal:vector[i]});
@@ -629,6 +637,7 @@ function solveOfficerPrecision(highs,src,send){
  if(!proven){
   emit('計算全月可填的最多安官班次');
   const model=officerAssignmentModel(f,{stage:0});
+  draftStage(120);
   const r=solveDoorModel(highs,model,best,opt,consider);
   if(r.Status!=='Optimal')throw Error('安官缺班證明未完成');
   consider(model.read(r));if(Math.abs(r.ObjectiveValue-score[0])>1e-6)throw Error('安官缺班數複核失敗');
@@ -648,6 +657,7 @@ function solveOfficerPrecision(highs,src,send){
  }
  if(score[1]>low){
   emit('正在證明個人班數偏差的最小值');
+  draftStage(120);
   const def=officerAssignmentModel(f,{stage:1,filled}),r=solveDoorModel(highs,def,best,opt,consider);
   if(r.Status!=='Optimal')throw Error('安官班數偏差證明未完成');
   consider(def.read(r));if(Math.abs(r.ObjectiveValue-score[1])>1e-6)throw Error('安官班數偏差複核失敗');
@@ -672,6 +682,32 @@ function solveOfficerPrecision(highs,src,send){
    return added;
   };
   addPts(best);
+  // 大型鄰域搜尋（LNS）：每輪只讓幾位安官（點數偏高與偏低各半）彼此重新分配手上的班，其他人完全不動，
+  // 用整數規劃求這一小組的最佳分配。小問題幾秒內解完，能穩定改善點數；但只是改善，不構成整體最優證明。
+  // 用時間預算的前 45%；剩下的時間照舊做整體證明（從改善後的班表出發，較容易完成）。
+  {
+   const lnsEnd=Date.now()+src.pointsSeconds*1000*0.45;
+   let seed=40503,stall=0,rounds=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+   const dev=a=>{const d=people.map(w=>filled*(w.burdenOffset||0));a.forEach((p,j)=>{if(p>=0&&live(j))d[p]+=filled*src.points[j]-PT;});return d;};
+   const take=(list,k)=>{const c=list.slice(),out=[];while(out.length<k&&c.length)out.push(c.splice(Math.floor(rnd()*c.length),1)[0]);return out;};
+   const size=Math.min(people.length,6),third=Math.max(3,Math.ceil(people.length/3));
+   while(rounds<300&&stall<15&&score[2]>1e-9&&Date.now()<lnsEnd-500){
+    rounds++;
+    const d=dev(best),order=people.map((_,p)=>p).sort((x,y)=>d[y]-d[x]||x-y);
+    const group=new Set([...take(order.slice(0,third),size>>1),...take(order.slice(-third),size-(size>>1))]);
+    const before=score[2];
+    for(let again=0;again<3;again++){
+     const left=(lnsEnd-Date.now())/1000;if(left<0.5)break;
+     const def=officerAssignmentModel(f,{stage:2,filled,l1:score[1],cuts,fixHoles:holeSet,choices:(j,p)=>best[j]===p||(group.has(p)&&group.has(best[j]))});
+     let r;try{r=solveDoorModel(highs,def,best,{...opt,time_limit:Math.min(8,left)},consider);}catch(_){break;}
+     if(r.Status!=='Optimal')break;
+     const a=def.read(r);consider(a);
+     // 近似目標（切平面）在這一小組已最佳；若真實點數沒改善，補上切平面再解一次
+     if(score[2]<before-1e-9||!addPts(a))break;
+    }
+    if(score[2]<before-1e-9){stall=0;emit('安官勤務負擔點數：小組重新分配改善到 '+score[2].toFixed(2)+'（第 '+rounds+' 輪）');}else stall++;
+   }
+  }
   for(let iter=0;;iter++){
    if(iter>400)throw Error('安官勤務負擔點數未能完成證明');
    emit('正在證明安官勤務負擔點數最優');
@@ -724,6 +760,7 @@ function solveOfficerPrecision(highs,src,send){
   for(;;){
    emit('正在證明安官艱苦哨最優'+(floor?'，已知下限 '+floor.toFixed(2):''));
    const def=officerAssignmentModel(f,{stage:2,filled,l1:score[1],cuts});
+   draftStage(15);
    const r=solveDoorModel(highs,def,best,opt,consider);
    if(r.Status!=='Optimal')throw Error('安官艱苦哨證明未完成');
    const a=def.read(r);consider(a);
@@ -867,6 +904,7 @@ function precisionSolve(highs,src,send){
    src.stageLowerBound=lb!==null&&lb<score[proven]?{stage:proven,value:lb}:null;
   }else src.stageLowerBound=null;
   emit('正在證明'+labels[proven]+'的最小值');
+  draftStage(proven<=2?120:15);
   const m=precisionModel(src,proven,score.slice(0,proven)),r=solveDoorModel(highs,m,best,options,publish);
   if(r.Status!=='Optimal')throw Error(labels[proven]+'求解狀態 '+r.Status);
   const a=m.read(r),s=doorObjectives(src,a);
@@ -968,6 +1006,7 @@ function precisionSolve(highs,src,send){
    for(;;){
     emit('正在證明艱苦哨公平的最小值'+(fairFloor===null?'':'，理論下限 '+fairFloor.toFixed(2)));
     const model=precisionModel(src,4,score.slice(0,4),{night:n,noon:m},cuts);
+    draftStage(15);
     const r=solveDoorModel(highs,model,best,options,publish);
     if(r.Status==='Infeasible')break;
     if(r.Status!=='Optimal')throw Error('艱苦哨求解狀態 '+r.Status);

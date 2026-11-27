@@ -79,4 +79,8 @@ $('month').value=todayMonth();$('monthTop').value=todayMonth();
 initUX();
 initEasyUX();
 startProtectedStore();
+// 給「有新版本」提示用：運算或加密儲存進行中時先不要切換版本；切換前先把自動存檔寫入。
+window.rosterUpdateBlocker=()=>scheduleBusy||repairBusy||minimalBusy||offlineJobs.size||!$('runProgress').hidden?'正在排班或精算':
+ vault&&(encryptedWritePending||autoSaveTimer!==null)?'正在儲存資料':'';
+window.rosterFlushSave=()=>{if(!vault&&autoSaveTimer!==null)saveAutoNow();};
 // #endregion

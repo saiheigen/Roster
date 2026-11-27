@@ -2,6 +2,45 @@
 // 精算引擎使用的班與班規則參數。頁面每次呼叫精算時，都會把規則表（GUARD_SHIFT_RULES）隨資料傳入。
 var __shiftRules={door:{maxConsecutiveDays:2,restHours:6,dailyMaxHours:6,dailyMaxShifts:3,twoDayMaxShifts:3},officer:{minGapDays:1,maxConsecutiveDays:2,restHours:6},shared:{sameSlotWindowDays:2,sundayStayGapWeeks:1}};
 function useShiftRules(r){if(r)__shiftRules=r;}
+// 一鍵排班（draft）的確定性：求解器的工作量改用「單純形法迭代次數」計算（在求解器回呼時檢查，超過預算就中斷），
+// 不看時鐘，所以同一份資料在快慢不同的裝置上得到相同結果。原本的時間上限放寬 DRAFT_SAFETY 倍，只當安全網；
+// 真的被時間截斷時記為 __safetyHit（結果可能因裝置而異，畫面會註明）。「精算並證明最優」不受影響。
+var __draft=false,__safetyHit=false,__stageSeconds=null;
+const DRAFT_ITERS_PER_SECOND=1200,DRAFT_STAGE_SECONDS=180,DRAFT_SAFETY=6,SAFETY_SCALE=1;
+// 主要階段（不設時間上限的整體求解）在一鍵排班時的工作量：缺班、同日多班、個人班數公平各 120 秒，其餘 15 秒（以桌機速度換算），
+// 改用迭代次數計算，與裝置快慢無關。
+function draftStage(seconds){__stageSeconds=seconds;}
+function draftOptions(o){
+ if(!__draft)return o;
+ return {...o,time_limit:((o&&o.time_limit)||__stageSeconds||DRAFT_STAGE_SECONDS)*DRAFT_SAFETY*SAFETY_SCALE};
+}
+// 回傳 mipInterrupt 回呼：累計迭代次數超過預算就中斷（只有一鍵排班時才加）
+function draftBudget(highs,o){
+ if(!__draft)return {};
+ const budget=((o&&o.time_limit)||__stageSeconds||DRAFT_STAGE_SECONDS)*DRAFT_ITERS_PER_SECOND;
+ return {[highs.constants.callbackType.mipInterrupt](e){if(Number(e.data.mip_total_lp_iterations||0)>budget)e.interrupt();}};
+}
+function useDraftLimits(highs,draft){
+ __draft=!!draft;__safetyHit=false;if(!__draft)return;
+ const solve=highs.solve.bind(highs);
+ highs.solve=(lp,o)=>{
+  if(!/\n\s*(binary|bin|general|gen|integer|integers)\s*\n/i.test(lp)){
+   const r=solve(lp,draftOptions(o));if(r.Status==='Time limit reached')__safetyHit=true;return r;
+  }
+  const model=highs.createModel({format:'lp',data:lp});
+  try{
+   model.options.set(draftOptions(o||{}));
+   const r=model.run(draftBudget(highs,o)),S=highs.constants.modelStatus;
+   if(r.modelStatus===S.timeLimit){__safetyHit=true;return {Status:'Time limit reached'};}
+   if(r.modelStatus===S.infeasible)return {Status:'Infeasible'};
+   if(r.modelStatus!==S.optimal)return {Status:'Interrupted'};
+   const n=model.getDimensions().numCols,x=model.getSolution().colValue,Columns={};
+   for(let i=0;i<n;i++)Columns[model.getColName(i)]={Primal:x[i]};
+   return {Status:'Optimal',Columns,ObjectiveValue:model.getObjectiveValue()};
+  }finally{model.dispose();}
+ };
+}
+function workLimitError(){const e=Error('一鍵排班運算量已達上限');e.workLimit=true;return e;}
 function stayRepeat(gap){const w=__shiftRules.shared.sundayStayGapWeeks;return gap>0&&gap%7===0&&gap<=7*w;}
 function doorDayCap(){const D=__shiftRules.door;return Math.min(D.dailyMaxShifts,Math.floor(D.dailyMaxHours/2));}
 function edgeHistory(person,days){

@@ -351,26 +351,19 @@ async function runPrecision(pool,draft=null,group=null){
  const view=draft?.view||group?.view||openProgress(month+' '+label+'精算','停止並查看班表',()=>{precisionStopAll=true;stopOffline('已停止精算，已保留通過巡檢的班表。');});
  const shared=draft||group,paint=(frac,text)=>{if(shared?.paint)shared.paint(pool,frac,text);else paintProgress(view,(draft?.start||0)+(draft?.span||100)*frac,text);};
  paint(0,'準備'+label+'精算');
- let timedOut=false,problem='';
- let timer=null,budgetPhase=null,overall=null;
+ let timedOut=false,problem='',safetyHit=false;
+ let overall=null;
  const l1Stage=officer?1:2;
- // 一鍵排班時每個勤務的精算最多 4 分鐘；時間到保留已通過巡檢的班表，可之後再按「精算並證明最優」補完。
- if(draft)overall=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;stopOffline(label+'精算已達一鍵排班時限。',job);}},240000);
- function startFairnessBudget(proven){
-  if(!draft||proven<l1Stage)return;
-  const phase=proven===l1Stage?'l1':burdenOn()&&proven>=labels.length-2?'points':'rest';
-  if(budgetPhase===phase)return;
-  if(timer!==null)clearTimeout(timer);
-  budgetPhase=phase;
-  timer=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;stopOffline(label+'公平精算已達時限。',job);}},phase==='l1'?180000:15000);
- }
+ // 一鍵排班的運算量由背景引擎以「求解器迭代次數」限制（與裝置快慢無關，同資料結果相同）。
+ // 這裡的 10 分鐘只是安全網：真的觸發時結果會因裝置而異，畫面會註明。
+ if(draft)overall=setTimeout(()=>{if(offlineJobs.has(job)){timedOut=true;safetyHit=true;stopOffline(label+'精算已達一鍵排班時間上限。',job);}},600000*SAFETY_SCALE);
  const snapshot={month,inputs,pins:pinSig,signature:precisionPoolSignature(base.solutions,pool),proven:0,total:labels.length,labels:labels.slice(),done:false,timedOut:false};precisionSnapshots[pool]=snapshot;
  offlineJobs.add(job);$('offlineStop').hidden=false;precisionButtons(true);panel.hidden=false;delete panel.dataset.status;
  precisionPart(pool,'Rows').replaceChildren();report.textContent=month+' '+label+'｜正在核對本機班表';
  status.textContent=label+'精算可隨時停止，通過獨立巡檢的改善會自動存檔。';
  try{
   verifyOptimization(base.m,base.solutions,pins);
-  const src={...solverBuildRequest(base.m,base.solutions).pools[pool],pool,holidaySeconds:draft?0:60,pointsSeconds:draft?0:120},initial=objectives(src,src.baseline);
+  const src={...solverBuildRequest(base.m,base.solutions).pools[pool],pool,draft:!!draft,holidaySeconds:draft?0:60,pointsSeconds:draft?0:120},initial=objectives(src,src.baseline);
   latest=initial;
   const cells=labels.map((label,i)=>{
    const row=document.createElement('tr');
@@ -413,18 +406,20 @@ async function runPrecision(pool,draft=null,group=null){
     renderChangeHistory();
     if(!saveAutoNow())saveWarning='。本機自動存檔失敗，請使用「備份全部」';}
    }
-   latest=q;certified=progress.proven;snapshot.proven=certified;startFairnessBudget(certified);
+   latest=q;certified=progress.proven;snapshot.proven=certified;
    cells.forEach((set,i)=>set(q[i],i<certified));
    report.textContent=month+' '+label+'｜'+progress.phase+'（'+certified+'/'+labels.length+'）'+saveWarning;
    job.summary=report.textContent;
    paint(certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');
   };
   const solved=await solveOfflinePool(job,url,bytes,src,onProgress);check();
+  if(solved?.safetyHit)safetyHit=true;
+  if(solved?.workLimited){timedOut=true;stopOffline(label+'精算已達一鍵排班運算量上限。',job);throw Error('已達一鍵排班運算量上限');}
   const holidaySkipped=!!solved?.holidayUnproven&&(certified===labels.length-1||(!!solved?.pointsUnproven&&certified===labels.length-2));
   if(certified!==labels.length&&!holidaySkipped)throw Error('求解器未完成所有目標的證明');
   let holidayNote='';
   try{
-   const polished=holidaySkipped?(src.points?pointsPolish(base,pool,src,pins,objectives):holidayPolish(base,pool,src,pins,objectives)):{changed:false,before:0,after:0,assignments:[]};
+   const polished=holidaySkipped?(src.points?pointsPolish(base,pool,src,pins,objectives):holidayPolish(base,pool,src,pins,objectives,draft?4000*DRAFT_SAFETY*SAFETY_SCALE:4000)):{changed:false,before:0,after:0,assignments:[]};
    if(polished.changed){
     check();
     const previous=base.solutions,ids=compactAssignments(previous);
@@ -463,16 +458,17 @@ async function runPrecision(pool,draft=null,group=null){
   status.textContent=panel.dataset.status=label+'精算完成，'+(holidaySkipped&&!holidayProvenByBound?(labels.length-(solved?.pointsUnproven?2:1))+' 項目標已證明最優（'+why+'）。':labels.length+' 項目標均已證明最優（含假日班公平）。')+holidayNote+saveWarning;
  }catch(e){if(offlineJobs.has(job)){problem=label+'精算未完成：'+e.message;panel.dataset.status=label+'精算已中止。'+e.message;status.textContent=label+'精算已中止。'+e.message+'。'+saveWarning;report.textContent=month+' '+label+'｜已中止，已完成 '+certified+'/'+labels.length+' 項證明。'+saveWarning;}}
  finally{
-  clearTimeout(timer);if(url)URL.revokeObjectURL(url);
+  if(url)URL.revokeObjectURL(url);
   if(offlineJobs.has(job)){offlineJobs.delete(job);if(!offlineJobs.size){$('offlineStop').hidden=true;precisionButtons(false);}}
   if(!draft&&!group){closeProgress(view);if(last)renderEasyDayView();}
   if(finalizeCells)finalizeCells();
  }
  if(overall!==null)clearTimeout(overall);
- snapshot.proven=Math.max(snapshot.proven||0,certified||0);snapshot.done=true;snapshot.timedOut=!!timedOut;
+ snapshot.proven=Math.max(snapshot.proven||0,certified||0);snapshot.done=true;snapshot.timedOut=!!timedOut;snapshot.safetyHit=!!safetyHit;
  {const rec=appStore.months[activeMonth];if(rec&&snapshot.month===activeMonth){rec.proof={...(rec.proof||{}),[pool]:{...snapshot}};if(typeof saveAutoSoon==='function')saveAutoSoon();}}
  if(typeof renderQualitySummary==='function')renderQualitySummary();
- return timedOut?(certified<=l1Stage?'⚠ '+label+(certified<l1Stage?'缺班或同日多班':'個人班數公平')+'尚未完成最佳化（已達一鍵排班時限），建議到班表頁「最佳化與修復」按「精算並證明最優」。':label+(burdenOn()?'勤務負擔點數':'艱苦哨')+'／連站等次要公平項目達時限，已保留已驗證的班表。'):problem;
+ const device=safetyHit?'（本次運算受裝置速度影響，換一台裝置重排可能略有不同）':'';
+ return (timedOut?(certified<=l1Stage?'⚠ '+label+(certified<l1Stage?'缺班或同日多班':'個人班數公平')+'尚未完成最佳化（已達一鍵排班運算上限），建議到班表頁「最佳化與修復」按「精算並證明最優」。':label+(burdenOn()?'勤務負擔點數':'艱苦哨')+'／連站等次要公平項目已達一鍵排班運算上限，已保留已驗證的班表。'):problem)+(device&&(timedOut||problem)?device:device?'⚠ '+label+device:'');
 }
 
 // #endregion

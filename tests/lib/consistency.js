@@ -42,9 +42,19 @@ async function mutateInPage(page, { trials, seed }) {
       }
       const main = {}, who = {};
       for (const pool of ['door', 'officer']) {
-        K.recount(sols[pool], pool, m);
-        main[pool] = [...new Set(sols[pool].tasks.filter(t => sols[pool].verified.get(t.key)?.check === '違規').map(t => sols[pool].res.get(t.key).id))].sort();
-        who[pool] = sols[pool].tasks.map(t => sols[pool].res.get(t.key)?.id || null);
+        // 排班判定：每一班都用 staticReason()／conflict() 對「此人其他班＋上月班」檢查（同工作台排班時的判定）
+        const sol = sols[pool], own = new Map(m.staff[pool].map(p => [p.key, [...p.history]])), bad = new Set();
+        let missing = 0;
+        for (const t of sol.tasks) { const p = sol.res.get(t.key); if (p) own.get(p.key).push(t); else missing++; }
+        for (const t of sol.tasks) {
+          const p = sol.res.get(t.key); if (!p || bad.has(p.id)) continue;
+          if (K.staticReason(p, t) || K.conflict(p, t, new Map([[p.key, own.get(p.key).filter(x => x !== t)]]))) bad.add(p.id);
+        }
+        // 讓巡檢的「班數統計、缺班數」比對通過（這兩項不是本測試要比的規則）
+        sol.missing = missing;
+        sol.stats = m.staff[pool].map(p => { const cur = own.get(p.key).filter(t => !t.hist); return { p, count: cur.length, hours: cur.reduce((n, t) => n + t.dur, 0) }; });
+        main[pool] = [...bad].sort();
+        who[pool] = sol.tasks.map(t => sol.res.get(t.key)?.id || null);
       }
       const ids = new Set(['door', 'officer'].flatMap(pool => m.staff[pool].map(p => p.id)));
       const messages = K.auditOf(sols);
@@ -90,16 +100,16 @@ async function compare(page, dumpSchedule, { trials = 300, seed = 1 } = {}) {
   return { trials: rounds.length, flagged, diffs };
 }
 
-// 30 位大門、20 位安官，休假之外再加上受訓、值星、督伙、夜查、車勤、義務役、免夜哨、免午哨、全面免哨與固定伙房，
+// 40 位大門、28 位安官（人力不吃緊，一鍵排班幾秒內完成），休假之外再加上受訓、值星、督伙、夜查、車勤、義務役、免夜哨、免午哨、全面免哨與固定伙房，
 // 讓每一種個人事件規則都會被測到。
 async function loadEventRich(page, K, syntheticLeave) {
   let n = 20261201; const r = () => { n = (Math.imul(1664525, n) + 1013904223) >>> 0; return n / 4294967296; };
   const id = (pre, k) => pre + String(k).padStart(3, '0'), day = d => '2026/12/' + String(d).padStart(2, '0');
   const range = (pre, count, len) => Array.from({ length: count }, () => {
-    const s = 1 + Math.floor(r() * 28); return `${id(pre, 1 + Math.floor(r() * (pre === 'H' ? 30 : 20)))}\t${day(s)}\t${day(Math.min(31, s + Math.floor(r() * len)))}`;
+    const s = 1 + Math.floor(r() * 28); return `${id(pre, 1 + Math.floor(r() * (pre === 'H' ? 40 : 28)))}\t${day(s)}\t${day(Math.min(31, s + Math.floor(r() * len)))}`;
   }).join('\n');
-  await K.loadData(page, { door: K.roster('H', '上兵', 30), officer: K.roster('P', '中士', 20),
-    leave: [syntheticLeave('H', 30, 0.3, 11), syntheticLeave('P', 20, 0.3, 13)].join('\n') });
+  await K.loadData(page, { door: K.roster('H', '上兵', 40), officer: K.roster('P', '中士', 28),
+    leave: [syntheticLeave('H', 40, 0.3, 11), syntheticLeave('P', 28, 0.3, 13)].join('\n') });
   const fields = {
     training: range('H', 3, 4) + '\n' + range('P', 2, 3),
     duty: range('P', 4, 2), meal: range('P', 4, 2),

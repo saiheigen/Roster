@@ -53,3 +53,12 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,su
 #resultsQuality{padding:10px 14px!important}
 #viewDay[aria-pressed="true"],#viewPerson[aria-pressed="true"]{color:var(--duty-green)!important;border-bottom-color:var(--duty-green)!important}
 .day-controls button{color:var(--duty-ink)}
+
+/* 新版本提示：固定在畫面下方（手機在底部導覽列上方） */
+.update-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:10px;
+ max-width:min(560px,calc(100vw - 32px));padding:10px 12px 10px 16px;border-radius:14px;background:var(--duty-ink);color:#fff;box-shadow:0 8px 24px rgba(19,40,59,.28)}
+.update-bar[hidden]{display:none!important}
+.update-bar span{flex:1;min-width:0;font-size:14px;line-height:1.4}
+.update-bar button{flex:0 0 auto;min-height:40px;padding:0 14px;border-radius:10px}
+.update-bar .ghost{background:transparent!important;color:#c9d6e2!important;border:1px solid rgba(255,255,255,.25)!important}
+@media (max-width:760px){.update-bar{left:16px;right:16px;transform:none;max-width:none;bottom:calc(84px + env(safe-area-inset-bottom))}}
