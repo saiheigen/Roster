@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="noindex,nofollow,noarchive" name="robots"/>
+<meta content="#13283b" name="theme-color"/>
+<link href="manifest.webmanifest" rel="manifest"/>
+<link href="icon-180.png" rel="apple-touch-icon"/>
+<link href="icon-192.png" rel="icon" type="image/png"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="哨務工作台" name="apple-mobile-web-app-title"/>
+<title>哨務工作台 v10.1｜離線整合版</title>
+<style><!--@include src/css/base.css--></style>
+<style><!--@include src/css/progress.css--></style><style><!--@include src/css/ios-controls.css--></style>
+<style><!--@include src/css/views.css--></style>
+<style><!--@include src/css/header-controls.css--></style>
+<style><!--@include src/css/touch-mobile.css--></style></head>
+<body><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
+<h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
+<p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
+<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.1</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
+<div aria-live="polite" id="quickMessage" role="alert"></div>
+<div class="layout">
+<aside class="sidebar"><div class="box"><div class="label">工作區</div><nav aria-label="網站功能" class="stepnav"><button class="active" data-step="home"><span class="circle">◫</span> 總覽</button><button data-step="setup"><span class="circle">♙</span> 人員名冊</button><button data-step="records"><span class="circle">▦</span> 休假與勤務</button><button data-step="results"><span class="circle">≡</span> 每日班表</button></nav><div class="sidebar-divider"></div><div class="sidebar-note"><span class="dot"></span>本機離線運作<br/><small>排班結果須經單位審核</small></div></div></aside>
+<main class="workspace">
+<section class="panel active" id="page-home">
+<div class="page-head"><h2>排班總覽</h2><div class="pwa-hint" hidden id="pwaHint" role="status">📱 這是主畫面 App 版，資料和 Safari 分開保存。第一次使用請到最下方「備份與還原」›「還原備份資料」載入備份檔。</div></div>
+<div class="overview-grid">
+<div class="overview-main card">
+<div class="row spaced"><span class="section-tag">目前工作月份</span><span class="state-tag" id="overviewBadge">未建立班表</span></div>
+<div class="overview-month" id="overviewMonth">—</div>
+<div class="overview-progress"><div class="row spaced"><span>班次填滿率</span><strong id="overviewRate">尚未排班</strong></div><div class="progress-track"><div class="progress-fill" id="overviewBar" style="width:0%"></div></div><p class="overview-sub" id="overviewCountNote">建立名冊後就可以開始。</p><div id="overviewQuality" class="quality-summary" hidden role="status"></div></div>
+<div class="overview-actions"><button class="primary" id="overviewRun" type="button">一鍵排班</button><button class="ghost" id="overviewSchedule" type="button">查看班表</button><button class="ghost" id="clearMonthSchedule" type="button" aria-expanded="false" aria-controls="clearMonthPrompt">清除本月班表</button></div>
+<div id="clearMonthPrompt" class="hidden">
+ <p id="clearMonthQuestion"></p>
+ <div class="actions"><button type="button" id="confirmClearMonth">確認清除</button><button type="button" id="cancelClearMonth">取消</button></div>
+</div>
+<div class="statusinline" id="clearMonthNotice" role="status" aria-live="polite"></div>
+</div>
+<div class="overview-side"><div class="mini-stat"><span>大門名冊</span><strong id="overviewDoorCount">0</strong><small>人</small></div><div class="mini-stat"><span>安官名冊</span><strong id="overviewOfficerCount">0</strong><small>人</small></div><div class="mini-stat"><span>勤務紀錄</span><strong id="overviewEventsCount">0</strong><small>筆</small></div><div class="mini-stat accent"><span>待補班次</span><strong id="overviewMissing">—</strong><small>班</small></div></div>
+</div>
+<details class="ux-home-details" id="homeSettings"><summary>資料檢查</summary><div class="card">
+<p class="help">一鍵排班會自動完成：初排 → 補滿缺班 → 精算並證明最優 → 獨立巡檢。</p>
+<div class="actions"><button id="overviewCheck" type="button">檢查本月資料</button></div>
+<div id="overviewAlerts" class="health-list"></div>
+</div></details>
+<details class="ux-home-details"><summary>已儲存的月份</summary><div class="card month-list" id="recentMonthList"></div></details>
+</section>
+<section class="panel" id="page-setup">
+<div class="page-head"><h2>人員名冊</h2></div>
+<div class="card ux-hidden-month"><div class="row spaced"><div class="field" style="min-width:190px"><label for="month">想排哪個月？</label><input id="month" type="month" value="2026-12"/></div><div class="step-summary"><strong id="monthInfo">每日大門 12 班、安官 7 班</strong><span class="chip" id="monthDays">—</span></div></div></div>
+<div class="card quick-card"><div class="card-head"><h3>新增人員</h3></div>
+<form class="quickform" id="personForm">
+<div class="field wide"><label for="personName">姓名</label><input aria-label="新增或修改人員姓名" autocomplete="off" id="personName" maxlength="40" placeholder="輸入姓名" required="" type="text"/></div>
+<div class="field"><label for="personPool">勤務種類</label><select id="personPool"><option value="door">大門衛哨</option><option value="officer">安全士官</option></select></div>
+<div class="field"><label for="personRank">級職</label><select aria-describedby="personRankHelp" id="personRank" required=""><option value="">請選擇級職</option></select><small class="rank-hint" hidden id="personRankHelp">依勤務種類顯示對應級職</small></div>
+<div class="field"><label for="personSex">性別（可留空）</label><select id="personSex"><option value="">不填</option><option value="男">男</option><option value="女">女</option></select></div>
+<div class="actions"><button class="primary big" id="personSave" type="submit">＋ 加入名冊</button><button id="personCancel" style="display:none" type="button">取消修改</button><span class="statusinline" id="personStatus"></span></div>
+</form>
+</div>
+<div class="roster-search"><label for="rosterSearch">搜尋人員</label><input aria-label="搜尋名冊人員" autocomplete="off" id="rosterSearch" placeholder="輸入姓名、級職或編號即可篩選" type="search"/></div>
+
+<div class="card hidden" id="lifecyclePanel" aria-live="polite">
+ <div class="row spaced"><strong id="lifecyclePersonName">離單位設定</strong><button class="ghost" id="lifecycleCancel" type="button">關閉</button></div>
+ <p class="help">從生效日起停止輪值。若當天或之後已有排班，請重新排班核對。</p>
+ <div class="lifecycle-stack"><div class="field"><label for="lifecycleDate">停用生效日</label><span class="picker-bound"><input id="lifecycleDate" type="date"/></span></div><div class="lifecycle-actions"><button class="primary" id="lifecycleSave" type="button">確認停用／離單位</button></div></div>
+ <p id="lifecycleNotice" class="help"></p>
+</div>
+<div class="roster-grid"><details class="ux-toolbox roster-group" id="doorRosterGroup"><summary><span>大門衛哨 <b id="doorCount">0</b> 人</span></summary><div class="person-items" id="doorList"></div><div class="preview hidden" id="doorPreview"></div></details>
+<details class="ux-toolbox roster-group" id="officerRosterGroup"><summary><span>安全士官 <b id="officerCount">0</b> 人</span></summary><div class="person-items" id="officerList"></div><div class="preview hidden" id="officerPreview"></div></details></div>
+<details class="ux-toolbox" id="ruleSettingsPanel"><summary><span>排班規則與每人上限 <b id="ruleSettingsBadge"></b></span></summary><div class="card">
+<p class="help">每個月各自保存，新月份沿用上個月的設定。修改後本月班表需要重新排班；排班、精算、巡檢與修復都依新設定。已封存月份不受影響。</p>
+<textarea id="ruleSettings" hidden aria-hidden="true" style="display:none"></textarea>
+<div class="rule-grid" id="ruleSettingsForm"></div>
+<div class="actions"><button type="button" id="ruleSettingsReset">全部恢復預設</button><span class="statusinline" id="ruleSettingsStatus" role="status"></span></div>
+</div></details>
+<details class="advanced"><summary>整批匯入名冊</summary><div class="card"><p class="hintbox">每行一人，依序貼入編號、級職、姓名、性別。</p><div class="grid"><div class="field"><label for="door">大門名冊（整批貼上）</label><textarea id="door" placeholder="H001　上兵　示範甲　男" spellcheck="false"></textarea><button data-file-target="door" type="button">讀取文字／CSV 檔</button></div><div class="field"><label for="officer">安官名冊（整批貼上）</label><textarea id="officer" placeholder="P001　中士　示範乙　女" spellcheck="false"></textarea><button data-file-target="officer" type="button">讀取文字／CSV 檔</button></div></div></div></details>
+<details class="advanced"><summary>示範資料</summary><button id="demo" type="button">載入範例名冊</button></details>
+<div class="section-foot"><span class="statusinline" id="setupStatus"></span><button class="primary big" data-next="records" type="button">下一步：登記休假／勤務 →</button></div>
+</section>
+<section class="panel" id="page-records">
+<div class="page-head"><h2>休假與勤務</h2></div>
+<div class="card person-lookup" id="personLookup">
+<h3>🔎 人員查詢</h3>
+<p class="help">輸入姓名或編號，列出這個人所有的休假、勤務紀錄與本月班次，可直接修改或刪除。</p>
+<input aria-label="人員查詢" autocomplete="off" id="lookupQuery" placeholder="輸入姓名或編號" type="search"/>
+<div class="lookup-matches" id="lookupMatches"></div>
+<div aria-live="polite" id="lookupResult"></div>
+</div>
+<div class="card">
+<div class="field record-category"><label for="recordCategory">紀錄項目</label><select id="recordCategory"></select></div>
+<div class="editor-top"><p id="categoryHelp">休假的最後一天，不是收假日。</p></div>
+<form class="record-form" id="recordForm"><div class="grid">
+<div class="field" id="personField"><label for="personFilter">搜尋人員</label><input autocomplete="off" id="personFilter" placeholder="搜尋後再選人" type="search"/><label for="personPicker" style="margin-top:8px">人員</label><select id="personPicker" required=""><option value="">請先新增名冊</option></select><small class="rank-hint" id="personPickerHint">依勤務與階級分組，可搜尋。</small></div>
+<div class="field hidden" id="poolField"><label for="historyPool">勤務種類</label><select id="historyPool"><option value="大門">大門</option><option value="安官">安官</option></select></div>
+<div class="field" id="startField"><label for="dateStart" id="dateStartLabel">開始日期</label><input id="dateStart" type="date"/></div>
+<div class="field" id="endField"><label for="dateEnd" id="dateEndLabel">結束日期</label><input id="dateEnd" type="date"/></div>
+<div class="field hidden" id="typeField"><label for="restrictionType">限制類型</label><select id="restrictionType"><option value="全面免哨">全面免哨</option><option value="免夜哨">免夜哨</option><option value="免午間艱苦哨">免午間艱苦哨</option><option value="義務役">義務役（週六、日禁排）</option></select></div>
+<div class="field hidden" id="weightField"><label for="weight">值哨權重</label><input id="weight" max="1" min="0.01" step="any" type="number" value="0.333333"/></div>
+<div class="field hidden" id="carryField"><label for="carryNum">上月應減班數</label><input id="carryNum" min="0" step="1" type="number" value="0"/></div>
+<div class="field hidden" id="slotField"><label for="historySlot">時段編號</label><select id="historySlot"></select></div>
+</div><div class="actions"><button class="primary big" id="recordSubmit" type="submit">＋ 加入紀錄</button><button class="ghost" id="cancelEdit" style="display:none" type="button">取消修改</button></div><div aria-live="polite" class="statusinline" id="recordStatus"></div></form>
+<details class="advanced record-list"><summary>已登記紀錄 <span id="recordCount">0 筆</span></summary><div id="recordList"></div></details>
+<details class="advanced"><summary>國定假日與連假</summary>
+<p>已預置 2026、2027 年政府行政機關日曆的國定假日及相連休假日（2027 年為依媒體彙整，請以人事行政總處公告核對）；其他年份請自行指定。大門與安官分開計算，每班計一次。可按單位核定日期調整。<a href="https://www.dgpa.gov.tw/information?pid=12574&amp;uid=2" target="_blank" rel="noopener noreferrer">人事行政總處日曆說明</a></p>
+<label for="holidayOverrides">增加或排除本月日期（例如 +12 -25）</label><input id="holidayOverrides" placeholder="+12 -25" />
+<p id="holidayDates"></p></details>
+<details class="advanced" id="bulkDetails"><summary>整批匯入紀錄</summary><p class="help" id="bulkInfo"></p><button id="bulkImportButton" type="button">讀取 CSV／文字檔</button><div id="raw-sections">
+<div class="raw-row active" data-raw="leave"><textarea aria-label="休假資料" id="leave"></textarea></div>
+<div class="raw-row" data-raw="training"><textarea aria-label="受訓資料" id="training"></textarea></div>
+<div class="raw-row" data-raw="duty"><textarea aria-label="值星資料" id="duty"></textarea></div>
+<div class="raw-row" data-raw="meal"><textarea aria-label="督伙資料" id="meal"></textarea></div>
+<div class="raw-row" data-raw="nightcheck"><textarea aria-label="夜查資料" id="nightcheck"></textarea></div>
+<div class="raw-row" data-raw="driver"><textarea aria-label="車勤資料" id="driver"></textarea></div>
+<div class="raw-row" data-raw="exempt"><textarea aria-label="勤務資格資料" id="exempt" placeholder="人員編號　義務役　生效日　結束日"></textarea></div>
+<div class="raw-row" data-raw="kitchen"><textarea aria-label="伙房資料" id="kitchen"></textarea></div>
+<div class="raw-row" data-raw="businessDay"><textarea id="businessDay" aria-label="業參實際日期"></textarea></div><div class="raw-row" data-raw="business"><textarea aria-label="業參資料" id="business"></textarea></div>
+<div class="raw-row" data-raw="carry"><textarea aria-label="補償資料" id="carry"></textarea></div>
+<div class="raw-row" data-raw="history"><textarea aria-label="跨月紀錄" id="history"></textarea></div>
+</div></details>
+</div>
+<div class="section-foot"><button data-next="setup" type="button">← 修改人員</button><button class="primary big" id="recordsRun" type="button">▶ 直接開始排班</button></div>
+</section>
+<section class="panel" id="page-review">
+<div class="page-head"><h2>資料檢查</h2></div>
+<div class="card"><div class="review-counters"><div class="item"><small>大門</small><strong id="reviewDoor">—</strong></div><div class="item"><small>安官</small><strong id="reviewOfficer">—</strong></div><div class="item"><small>勤務紀錄</small><strong id="reviewEvents">—</strong></div></div><p class="review-info" id="reviewInfo"></p><div aria-live="polite" class="message" id="reviewValidation"></div><div class="message warn hidden" id="yearReviewBox"><label><input id="yearReviewed" type="checkbox"/> 我已核對上述跨年日期確實屬於歷史紀錄／年份正確，同意在本月排班時使用。</label><p class="help">核對會依月份及可疑日期內容儲存；修改其他姓名不會失效，變動可疑紀錄後須重新確認。</p></div><div class="actions"><button id="checkData" type="button">再檢查一次</button><button class="primary" disabled="" id="run" type="button">▶ 開始排班</button><button class="danger hidden" id="reviewClearPins" type="button">解除本月人工固定班次</button><button data-next="setup" type="button">修改人員</button><button data-next="records" type="button">修改休假／勤務</button></div><div aria-live="polite" class="message hidden" id="status"></div></div>
+</section>
+<section class="panel" id="page-results">
+<div class="page-head"><h2>本月班表</h2></div>
+<div id="resultsQuality" class="quality-summary" hidden role="status"></div>
+
+<div class="hidden" id="results"><div class="freshness-banner hidden" id="scheduleFreshness" role="status"></div><div class="card ux-schedule-main"><div class="pills"><button class="pill active" data-pool="door" type="button">大門衛哨</button><button class="pill" data-pool="officer" type="button">安全士官</button></div>
+<div class="view-switch" aria-label="查班方式" role="group"><button id="viewDay" type="button" aria-pressed="true">依日期</button><button id="viewPerson" type="button" aria-pressed="false">依人員</button></div>
+<div id="dailyView"><div class="day-picker"><div class="day-picker-head"><label for="filterDate">查看日期</label><button class="today-btn" hidden id="todayDay" title="跳到今天" type="button">今天</button></div>
+<div class="day-controls"><button aria-label="前一天" title="前一天" id="prevDay" type="button">‹</button>
+<span class="picker-bound"><input aria-label="班表日期" id="filterDate" type="date"/></span>
+<button aria-label="後一天" title="後一天" id="nextDay" type="button">›</button></div></div>
+<div class="schedule-counts"><button type="button" id="uxJumpMissing" aria-pressed="false"></button><details id="loadDetails"><summary id="loadSummary"></summary><div id="workloadNotice"></div></details></div>
+<p class="help" id="coverageNote" role="status" hidden></p>
+<details class="calendar-wrap" id="calendarDetails"><summary>月曆</summary><div class="calendar-grid" id="monthCalendar"></div></details>
+<div class="row spaced day-label-row"><div class="day-title" id="dayTitle"></div></div><div aria-live="polite" class="statusinline" id="repairStatus"></div><div aria-live="polite" class="day-cards" id="daySchedule"></div>
+<div class="hidden" id="assignPanel"><h3>指定本班人員</h3><p class="help" id="assignTitle"></p><div class="field"><label for="assignPicker">通過現有檢查的候選人</label><select id="assignPicker"></select></div><p class="help" id="assignInfo"></p><div class="field"><label for="assignOperator">本次操作者（必填，本機紀錄）</label><input id="assignOperator" type="text" maxlength="40" placeholder="例如：排哨人"></div><div class="field"><label for="assignReason">指定原因（留存在本機變更紀錄，可選）</label><input id="assignReason" type="text" maxlength="140" placeholder="例如：勤務協調"></div><div class="actions"><button class="primary" id="assignSave" type="button">確定指定並固定此班</button><button class="ghost hidden" id="assignUnlock" type="button">解除固定</button><button class="danger" id="assignClear" type="button">清空此班</button><button id="assignCancel" type="button">取消</button></div></div>
+</div>
+<section id="personAgenda" hidden><div class="agenda-fields"><div class="field"><label for="agendaSearch">搜尋姓名或編號</label><input type="search" id="agendaSearch" placeholder="姓名或人員編號"></div><div class="field"><label for="agendaPerson">選擇人員（依級職排序）</label><select id="agendaPerson"></select></div></div><div class="agenda-summary" id="agendaSummary">選好人員後會顯示班次與負擔。</div><div class="agenda-list" id="agendaList"></div>
+<div class="agenda-actions" hidden id="agendaActions">
+<label class="share-consent lookup-consent"><input id="agendaConsent" type="checkbox"/><span>我了解內容包含姓名與勤務時間，會確認分享對象與管道符合單位規定。</span></label>
+<div class="actions"><button class="mini primary" id="agendaCopy" type="button">📋 複製此人班表</button><button class="mini ghost" hidden id="agendaSend" type="button">📤 分享</button><button class="mini ghost" id="agendaRecords" type="button">🔎 查看／修改此人的休假與勤務紀錄</button></div>
+<p class="help" id="agendaShareStatus" role="status"></p><textarea aria-label="此人班表內容" class="person-share-text hidden" id="agendaShareText" readonly spellcheck="false"></textarea>
+</div></section></div>
+<details id="gapAnalysis" class="gap-analysis" hidden><summary></summary><div class="gap-body"></div></details>
+<details class="card minimal-panel hidden" id="minimalPanel" aria-label="最小異動重排">
+ <summary>修復既有草稿</summary><p class="help">優先補滿缺班、減少大門同日多班，套用前可核對每筆異動。</p>
+ <div class="actions"><button class="primary" id="minimalStart" type="button">預覽最小異動</button><button id="minimalGoReview" type="button">先檢查輸入資料</button></div>
+ <div id="minimalStatus" class="statusinline" role="status" aria-live="polite"></div>
+ <div class="proof-status" id="minimalMathStatus" role="status" aria-live="polite">離線精確求解會在有界時間內嘗試證明最少異動數；超出範圍時仍保留原本的智慧修復。</div>
+ <div id="minimalCompare" class="hidden" aria-live="polite">
+  <div class="minimal-summary" id="minimalSummary"></div>
+  <div class="field minimal-operator"><label for="changeOperator">操作人標記（僅供本機紀錄，不是身分認證）</label><input id="changeOperator" type="text" maxlength="40" autocomplete="off" placeholder="例如：值班排哨人"></div>
+  <div class="field"><label for="minimalReason">這次異動的原因（可選）</label><input id="minimalReason" type="text" maxlength="140" placeholder="例如：新增休假、調整車勤"></div>
+  <details id="minimalDiffDetails" open><summary>查看本次全部異動班次 <span id="minimalDiffCount"></span></summary><div class="minimal-diff-list" id="minimalDiffList"></div></details>
+ 
+  <div class="actions"><button class="primary" id="minimalAccept" type="button">確認套用這份方案</button><button class="ghost" id="minimalDismiss" type="button">保留原班表</button></div>
+ </div>
+</details>
+<details class="ux-toolbox" id="precisionTools"><summary>最佳化與修復</summary><div class="compact-tools">
+<p class="help">一鍵排班已自動精算。下列工具用於：要求完整證明（含假日班公平）、手動調班後補滿缺班，或保留人工固定的班次全部重排。</p>
+<div class="actions">
+<button class="primary" type="button" id="precisionAll" aria-describedby="precisionHint">精算並證明最優（大門＋安官同時進行）</button>
+<button class="ghost" type="button" id="smartRepair">補滿缺班（少量調整）</button>
+<button class="ghost" type="button" id="resultsRun">↻ 保留固定班次重新排班</button>
+</div><p class="help" id="precisionHint">精算可隨時停止，已通過巡檢的改善會保留；勤務負擔點數的證明最多 120 秒、假日班公平最多 60 秒，未能證明時保留找到的改善。</p>
+<p class="help mobile-hint" id="precisionMobileHint" hidden>📱 手機上精算比電腦慢好幾倍，鎖定螢幕或切到其他 App 時計算會暫停。一鍵排班的結果和電腦相同；要拚「證明最優」，建議在電腦用 Chrome／Edge 開同一份備份來精算。</p>
+<script>try{if(matchMedia('(pointer:coarse)').matches)document.getElementById('precisionMobileHint').hidden=false;}catch(_){}</script>
+<section id="precisionPanel" class="deep-card" hidden>
+<strong id="precisionReport" role="status" aria-live="polite"></strong>
+<table class="deep-table"><thead><tr><th>大門目標</th><th>啟動時</th><th>目前最佳</th><th>證明</th></tr></thead><tbody id="precisionRows"></tbody></table>
+</section>
+<section id="officerPrecisionPanel" class="deep-card" hidden>
+<strong id="officerPrecisionReport" role="status" aria-live="polite"></strong>
+<table class="deep-table"><thead><tr><th>安官目標</th><th>啟動時</th><th>目前最佳</th><th>證明</th></tr></thead><tbody id="officerPrecisionRows"></tbody></table>
+</section>
+<div class="auto-progress"><span id="offlineReport" role="status" aria-live="polite"></span><button type="button" id="offlineStop" hidden>停止精修</button></div></div></details>
+<details class="card change-history" id="changeHistory"><summary>班表變更紀錄 <span id="changeHistoryCount"></span></summary>
+ <p class="help">本機操作紀錄，非防竄改稽核。更新及對外公告前請核對新舊班表版本；資料備份會包含紀錄。</p>
+ <div id="changeHistoryList"></div></details>
+<details class="advanced" id="advancedSchedule"><summary>整月明細與班數統計</summary>
+<div class="card"><div class="result-toolbar"><button class="pill" id="missingToggle" type="button">只看缺班：關</button><div class="field"><label for="filterText">篩選月表備註</label><input id="filterText" placeholder="輸入缺班原因或備註" type="search"/></div><button id="clearFilter" type="button">清除篩選</button></div><p class="help" id="tableInfo"></p><div class="tablewrap"><table><thead><tr><th>日期</th><th>星期</th><th>班號</th><th>時段</th><th>時數</th><th>編號</th><th>級職</th><th>姓名</th><th>檢查</th><th>備註</th></tr></thead><tbody id="tableBody"></tbody></table></div><h3 style="margin-top:22px">個人班數</h3><div class="tablewrap"><table><thead><tr><th>編號</th><th>姓名</th><th>班數</th><th>時數</th><th>夜間</th><th>午間</th><th>假期班數</th><th>督伙折抵</th><th>跨月補償</th><th>基本整數配額</th><th>建議實站班數</th><th>勤務點數</th><th>點數累計差額</th></tr></thead><tbody id="statBody"></tbody></table></div></div>
+</details><details class="ux-toolbox ux-publish" id="uxPublish"><summary>封存與分享</summary><div class="archive-panel" id="archivePanel"><div><strong id="archiveTitle">本月尚未封存</strong><p id="archiveDescription">確認班表後，可以封存本月，防止誤觸重新排班或調班。封存不代表單位正式核定。</p><div id="scheduleReference"></div><div class="archive-warning" id="archiveCarry"></div></div><button id="archiveToggle" type="button">封存本月班表</button></div><section aria-labelledby="shareHeading" class="share-panel" id="sharePanel">
+<div class="share-heading"><h3 id="shareHeading">↗ 分享唯讀班表</h3><span class="share-pill draft" id="shareBadge">草稿</span></div>
+<p class="share-description">唯讀班表包含姓名、時段與勤務統計。</p>
+<div class="help" id="shareGuard" role="status">封存完成的班表會顯示「已封存」；未封存會標示為草稿。封存不代表單位核定。</div>
+<label class="share-consent"><input id="shareConsent" type="checkbox"/><span>我了解檔案包含人員姓名、哨務時間及個人勤務統計，會先確認分享對象與傳送方式符合單位規定。</span></label>
+<div class="share-actions v52-actions"><button class="ghost" id="sharePreview" type="button">👁 預覽唯讀版</button><button class="primary" id="shareFile" type="button">📤 分享／下載檔案</button><button class="ghost" id="shareText" type="button">📋 複製文字班表</button></div>
+<div class="person-share" id="personShare">
+<h3>👤 個人班表</h3>
+<p class="share-description">每個人一段「我哪幾天站哪一班」，可直接貼到 LINE 群組或私訊給本人。</p>
+<div class="person-share-options">
+<label>範圍<select id="personShareScope"><option value="all">全部人員</option><option value="door">只要大門衛哨</option><option value="officer">只要安全士官</option></select></label>
+<label>格式<select id="personShareFormat"><option value="block">每人一段（逐日列出）</option><option value="line">每人一行（精簡）</option></select></label>
+</div>
+<div class="share-actions"><button class="primary" id="personShareCopy" type="button">📋 複製個人班表</button><button class="ghost" hidden id="personShareSend" type="button">📤 分享到其他 App</button></div>
+<div aria-live="polite" class="share-status" id="personShareStatus" role="status"></div>
+<textarea aria-label="個人班表內容" class="person-share-text hidden" id="personShareText" readonly spellcheck="false"></textarea>
+</div>
+<div aria-live="polite" class="share-status" id="shareStatus" role="status"></div><div class="share-preview-panel hidden" id="shareCopyBox"><label for="shareTextArea">文字班表（可長按複製）</label><textarea aria-label="文字班表內容" id="shareTextArea" readonly="" spellcheck="false"></textarea><button class="ghost" id="shareCopyClose" type="button">收起文字</button></div>
+<div aria-label="本月唯讀班表預覽" class="share-preview-panel hidden" id="sharePreviewBox"><div class="row spaced"><b>唯讀班表預覽</b><button class="ghost" id="shareClose" type="button">關閉預覽</button></div>
+<p>此預覽直接在本頁顯示，不會開新網頁；正式分享時請使用下方的分享或下載功能。</p>
+<div class="readonly-inline" id="roInline">
+<div class="ro-inline-head"><span class="share-pill draft" id="roInlineBadge">草稿</span><strong id="roInlineMonth"></strong><span class="ro-inline-summary" id="roInlineSummary"></span></div>
+<div class="ro-inline-controls"><div><label for="roInlineDate">選擇日期</label><input id="roInlineDate" type="date"/></div><div><label for="roInlineSearch">搜尋全月姓名</label><input id="roInlineSearch" placeholder="輸入姓名" type="search"/></div></div>
+<div class="ro-inline-tabs"><button class="active" id="roInlineDoor" type="button">🚪 大門衛哨</button><button id="roInlineOfficer" type="button">🛡️ 安全士官</button></div>
+<div class="ro-inline-nav"><button id="roInlinePrev" type="button">← 前一天</button><strong id="roInlineTitle"></strong><button id="roInlineNext" type="button">後一天 →</button></div>
+<div class="ro-inline-info" id="roInlineInfo" role="status"></div><div aria-live="polite" class="ro-inline-entries" id="roInlineEntries"></div>
+</div>
+</div>
+</section></details><details class="ux-toolbox ux-diagnostics" id="uxDiagnostics"><summary>巡檢與進階工具 <span id="auditIssueCount" class="hidden" role="status" aria-live="polite"></span></summary><div aria-live="polite" class="quality-card" id="independentAuditPanel">
+<div class="row spaced"><h3>🛡️ 獨立班表巡檢</h3><button class="ghost" id="integrityRun" type="button">重新檢查</button></div>
+<p class="help">核對人員資格、休息間隔、班次、統計與固定班次。</p>
+<div class="message" id="integrityStatus">尚未執行獨立巡檢。</div>
+</div><div class="quality-card" id="qualityPanel"><div class="row spaced"><h3>排班品質與作息</h3><span class="section-tag">排班診斷</span></div><div class="metricwrap ux-results-metrics" id="metrics"></div><div class="quality-grid" id="qualityRows"></div><p class="help" id="qualityHint"></p></div><div id="messages"></div><div class="row spaced"><span class="bignote" id="reviewHint"></span></div></details>
+
+</div><div class="empty-state" id="noResults">還沒有班表。新增人員、登記休假後，按「一鍵排班」就能開始。</div>
+</section>
+<section class="footer"><div class="card"><details><summary>備份與還原</summary><p class="help">更換裝置或檔案前，請先備份。</p><p class="help" id="manualBackupInfo" role="status">上次手動備份：尚無紀錄</p>
+<details id="privacyCard"><summary>本機資料保護</summary><p id="privacyHelp">目前採明文自動儲存。加密後每次開啟需解鎖；請保存密碼，遺失後無法代為重設。</p>
+<input id="newVaultPass" type="password" autocomplete="new-password" placeholder="新密碼（至少 10 字元）" aria-label="新密碼">
+<input id="confirmVaultPass" type="password" autocomplete="new-password" placeholder="確認新密碼" aria-label="確認新密碼">
+<button id="enableVault" type="button">啟用本機加密</button> <button id="eraseLocal" type="button">清除本機全部資料</button></details>
+<dialog id="backupPassDialog"><form method="dialog"><label for="backupPass">加密備份密碼</label><input id="backupPass" type="password" autocomplete="current-password"><button value="open">還原</button><button value="cancel">取消</button></form></dialog>
+<div class="row"><div class="field"><label for="snapshotPicker">本機自動快照（最多 2 份）</label><select id="snapshotPicker"><option value="">目前沒有自動快照</option></select></div><button id="restoreSnapshot" type="button">還原選取的快照</button></div>
+<p class="help" id="snapshotNotice">自動快照約每 6 小時保留一份較舊的進度，最多兩份。快照與主存檔在同一個 App 儲存空間，不能替代外部備份。</p>
+<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.1 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
+</main></div>
+
+<nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
+<div class="undo-toast hidden" id="undoToast" role="status"><span id="undoText">已刪除</span><button id="undoDelete" type="button">↶ 撤銷刪除</button></div>
+
+
+
+<!-- v10.1 · 勤務板視覺：夜哨藍／勤務綠配色、班表時段牌（夜間深色、白天淺色、缺班琥珀斜紋）、班表頁精簡（品質摘要一行、試算與修復移到班表下方）、移除規則待驗收提示（已由單位核對）。
+v10.0 · 網頁版整合：大門與安官同時精算（兩個背景執行緒，約快 40%）；離線快取與主畫面 App（manifest、圖示）；請瀏覽器長期保存資料；「依人員」可直接複製／分享班表並跳到該員紀錄。
+v9.6 · 紀錄列表、人員查詢依日期由小到大排列；同一天的班次依時間先後。
+v9.5 · 個人班表分享：每人「哪幾天站哪一班」的文字，可複製或分享到 LINE；可單人或全部人員。
+v9.4 · 手機操作整理：輸入框不再自動放大、班表日期列固定在上方、左右滑動換日、「今天」按鈕、時段不斷行、紀錄表不超出畫面。
+v9.3 · 人員查詢：快速找出某人的休假與勤務紀錄、本月班次，可直接修改或刪除。
+v9.2 · 人力缺口試算（怎麼補缺班最有效）；精算結果的次要項目顯示「已改善／未再改善」，手機提示。
+v9.1 · 安官改為可連站兩天（一天一班、跨日休息六小時）；有缺班時照樣平衡勤務負擔點數；每個缺班列出無人可排的原因。
+v9.0 · 勤務負擔點數（取代艱苦哨計算）與跨月點數帳。
+v8.0 · 整合介面：移除線上求解器與深度搜尋，精算合併為單一按鈕，分享合併為單一按鈕。
+v7.9.x · 單一規則表、假日公平進精算、精算讀規則表（離線引擎為 HiGHS MILP，非 CP-SAT）。
+v7.4 · 整合離線精算引擎（HiGHS），沿用 v6.9 的班表巡檢與存檔格式。
+     v6.9.0 · 輕量離線版、加密存檔、假期公平與操作者紀錄。
+     v6.8.7 · 日期置中、名冊與跨月資料防錯、查班局部更新。
+     v6.8.6 · 縮小頁首月份，將日期與前後日整合成單列。
+     v6.8.5 · 整合每日、人員與缺班查詢；依狀態顯示局部修班。
+     v6.8.4 · 依勤務切換同日負擔與人力統計。
+v6.8.3 · 修正手機月份與停用日期輸入框寬度。
+v6.8.2 · 自動分組精修與保存、簡化班表頁、修正備份還原失敗處理。
+v6.8.1 · 2026-11-18
+維護索引：搜尋「#region」可定位程式區段。
+變更：抽出離線求解資料轉換；整合結果導覽與日期事件；合併重複檢查及首頁入口。
+-->
+<script type="text/plain" id="zeroModule"><!--@include vendor/highs/highs.js--></script>
+<script type="text/plain" id="zeroBinary"><!--@base64 vendor/highs/highs.wasm--></script>
+<script type="text/plain" id="zeroLicense"><!--@include vendor/highs/LICENSE.txt--></script>
+<script id="offlineLicense" type="text/plain"><!--@include vendor/THIRD-PARTY-NOTICES.txt--></script>
+<script data-component="offline-codec"><!--@include src/js/offline-codec.js--></script>
+<script id="doorObjectives"><!--@include src/worker/objectives.js--></script>
+<script type="text/plain" id="precisionWorker"><!--@include src/worker/precision.js--></script>
+<script id="guardRules"><!--@include src/js/rules.js--></script>
+<script data-component="schedule-audit"><!--@include src/js/audit.js--></script>
+
+<script>
+
+'use strict';
+(()=>{
+<!--@include src/js/app/01-data-parse.js-->
+<!--@include src/js/app/02-eligibility-targets.js-->
+<!--@include src/js/app/03-fill-repair-selftest.js-->
+<!--@include src/js/app/04-precision.js-->
+<!--@include src/js/app/05-burden-ledger.js-->
+<!--@include src/js/app/06-results.js-->
+<!--@include src/js/app/07-share-export.js-->
+<!--@include src/js/app/08-storage-backup.js-->
+<!--@include src/js/app/09-navigation-records.js-->
+<!--@include src/js/app/10-schedule-run.js-->
+<!--@include src/js/app/11-audit-archive.js-->
+<!--@include src/js/app/12-roster-calendar.js-->
+<!--@include src/js/app/13-boot.js-->})();
+
+</script>
+<script><!--@include src/js/pwa.js--></script>
+</body>
+</html>

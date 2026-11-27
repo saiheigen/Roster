@@ -1,0 +1,39 @@
+
+/* v6.8.6: both controls retain native pickers and their original event targets. */
+header.top .top-month{display:block;min-width:0;width:fit-content;max-width:100%;margin-inline-start:auto}
+header.top .top-month label{text-align:center;margin:0;letter-spacing:.04em;color:#c1d8df}
+header.top .top-month .picker-bound{border-bottom:1px solid #80aab6}
+header.top .top-month #monthTop{
+ background:transparent;color:white;border:0;border-radius:0;color-scheme:dark;
+ padding:2px 0;min-height:44px;inline-size:100%;text-align:center;font-weight:650
+}
+header.top #monthTop::-webkit-date-and-time-value{text-align:center;margin:auto}
+#dailyView .day-picker{box-sizing:border-box;width:100%;min-width:0;max-width:25rem;margin:12px auto}
+.day-picker label{display:block;text-align:center;font-size:.84rem;font-weight:650;color:#445a68;margin-bottom:5px}
+#dailyView .day-controls{
+ box-sizing:border-box;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;
+ align-items:center;gap:0;margin:0;padding:2px;max-width:25rem;width:100%;min-width:0;
+ border:1px solid #c7d9df;border-radius:12px;background:#f4f8f9
+}
+#dailyView .day-controls button{
+ grid-column:auto;grid-row:auto;min-width:0;height:44px;padding:0;margin:0;
+ display:grid;place-items:center;font:500 26px/1 system-ui;
+ background:transparent;box-shadow:none;border:0;color:#2a4f40
+}
+#dailyView .day-controls button:disabled{color:#8799a1}
+#dailyView .day-controls .picker-bound{overflow:hidden;border-radius:8px;background:white}
+#dailyView #filterDate{
+ box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;min-inline-size:0;
+ height:44px;min-height:44px;padding:4px 6px;margin:0;border:0;background:white;
+ font:550 16px/1.25 system-ui;color:#243e50;text-align:center;-webkit-appearance:none;appearance:none
+}
+#filterDate::-webkit-date-and-time-value{text-align:center;margin:auto}
+@media(pointer:coarse){
+ #dailyView #filterDate,header.top #monthTop{display:flex;align-items:center;justify-content:center}
+ #filterDate::-webkit-datetime-edit,#monthTop::-webkit-datetime-edit{flex:none;text-align:center}
+}
+.day-controls:focus-within,.top-month .picker-bound:focus-within{outline:2px solid #54a9b8;outline-offset:2px}
+@media(max-width:760px){
+ header.top .topin{grid-template-columns:minmax(0,1fr) minmax(0,8.5rem)}
+ header.top .top-month{width:100%;max-width:8.5rem}
+}

@@ -1,0 +1,1 @@
+.auto-progress{display:flex;align-items:center;gap:.5rem;color:#31576a;font-size:.9rem}.auto-progress:has(#offlineReport:empty){display:none}.auto-progress button[hidden]{display:none}#minimalPanel summary{cursor:pointer;font-weight:650}
