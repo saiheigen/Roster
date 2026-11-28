@@ -161,7 +161,7 @@ async function suiteUpdate() {
   if (errors.length) record('新版本提示：頁面錯誤', false, errors.slice(0, 2).join('；'));
 }
 
-// 給被排的人：個人班表連結與行事曆檔、休假填報與「收集休假」匯入
+// 給被排的人：個人班表連結與行事曆檔
 async function suitePeople() {
   for (const s of await peopleFeatures(K, target)) record('給被排的人：' + s.name, s.ok, s.detail);
 }

@@ -842,7 +842,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,su
 .update-bar .ghost{background:transparent!important;color:#c9d6e2!important;border:1px solid rgba(255,255,255,.25)!important}
 @media (max-width:760px){.update-bar{left:16px;right:16px;transform:none;max-width:none;bottom:calc(84px + env(safe-area-inset-bottom))}}
 
-/* 給被排的人的小頁面（個人班表連結、休假填報）：開啟時隱藏整個工作台 */
+/* 給被排的人的個人班表頁：開啟時隱藏整個工作台 */
 html.mini-mode body>:not(#miniPage){display:none!important}
 html.mini-mode body{background:var(--duty-board)}
 .mini-page{max-width:560px;margin:0 auto;padding:0 16px calc(32px + env(safe-area-inset-bottom));color:var(--duty-ink);font-size:16px;line-height:1.55}
@@ -859,46 +859,24 @@ html.mini-mode body{background:var(--duty-board)}
 .mini-time{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .mini-shift small{color:#5d6b74;font-size:13px;text-align:right}
 .mini-empty{padding:16px;background:#fff;border-radius:12px;color:#5d6b74}
-.mini-actions,.mini-form,.mini-cal{display:grid;gap:10px;margin:0 0 16px;padding:16px;border-radius:14px;background:#fff;border:1px solid var(--duty-line,#dde3df)}
+.mini-actions{display:grid;gap:10px;margin:0 0 16px;padding:16px;border-radius:14px;background:#fff;border:1px solid var(--duty-line,#dde3df)}
 .mini-field{display:grid;gap:6px;font-size:14px;color:#3d4c56}
 .mini-field input,.mini-field select{min-height:46px;padding:0 12px;border:1px solid #c9d2cd;border-radius:10px;font:inherit;font-size:16px;background:#fff;color:inherit}
-.mini-primary,.mini-ghost{min-height:48px;padding:0 16px;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+.mini-primary{min-height:48px;padding:0 16px;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
 .mini-primary{border:0;background:var(--duty-green);color:#fff}
 .mini-primary:disabled{opacity:.45}
-.mini-ghost{border:1px solid #c9d2cd;background:#fff;color:var(--duty-ink)}
-.mini-ghost:disabled{opacity:.35}
-.mini-link{justify-self:start;border:0;background:none;color:var(--duty-green-deep);font:inherit;font-size:14px;text-decoration:underline;padding:6px 0;cursor:pointer}
 .mini-help{margin:0;color:#5d6b74;font-size:13px}
-.mini-preview{margin:0;padding:12px;border-radius:10px;background:var(--duty-green-soft);font-weight:700;word-break:break-all;user-select:all}
 .mini-foot{color:#6b7880;font-size:12.5px}
-.mini-cal-nav{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;text-align:center;font-size:17px}
-.mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
-.mini-wd{font-size:12px;color:#6b7880;padding:4px 0}
-.mini-day{transition:none;display:flex;align-items:center;justify-content:center;padding:0;min-height:44px;border:1px solid #dfe5e1;border-radius:10px;background:#fff;font:inherit;font-size:16px;font-variant-numeric:tabular-nums;color:inherit;cursor:pointer}
-.mini-day.mini-weekend{color:#9a3b2f}
-.mini-day.on{background:var(--duty-green);border-color:var(--duty-green);color:#fff;font-weight:700}
 .mini-page button:focus-visible,.mini-page input:focus-visible,.mini-page select:focus-visible{outline:3px solid var(--duty-green);outline-offset:2px}
 
-/* 個人班表分享的連結勾選、收集休假 */
+/* 個人班表分享的連結勾選 */
 .person-share-options .share-check{flex-direction:row;align-items:center;gap:8px;flex-basis:100%;font-size:14px;color:var(--duty-ink)}
 .person-share-options .share-check input{width:20px;height:20px;accent-color:var(--duty-green)}
-.leave-collect>summary{cursor:pointer;font-weight:700;font-size:17px;min-height:44px;display:flex;align-items:center}
-.leave-collect textarea#leaveInbox{width:100%;min-height:120px;padding:10px 12px;border:1px solid #c9d2cd;border-radius:10px;font:inherit;font-size:15px;resize:vertical}
-.leave-inbox-label{display:block;margin:12px 0 6px;font-size:14px;color:#3d4c56}
-.leave-inbox-list{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px}
-.leave-inbox-list li{display:grid;gap:2px;padding:10px 12px;border-radius:10px;background:var(--duty-green-soft)}
-.leave-inbox-list li.is-error{background:var(--duty-amber-soft);color:#6d4300}
-.leave-inbox-list li.is-none{background:#f1f3f2}
-.leave-inbox-list span{font-size:14px;color:#3d4c56}
-.leave-missing summary{cursor:pointer;font-size:14px;color:var(--duty-green-deep);padding:6px 0}
-.leave-missing p{margin:4px 0 0;font-size:14px;line-height:1.7}
 
 </style></head>
 <body><script>
-// 給「被排的人」用的兩個小頁面，用網址 # 後面的內容開啟，不載入工作台的資料：
-//   #my=…      個人班表：列出這個人的班次，可一鍵加入手機行事曆（.ics）
-//   #leave=YYYY-MM  休假填報：選日期後產生一段文字，傳回給排班人貼進工作台
-// # 後面的內容不會送到網站伺服器；個人班表的資料就在連結本身。
+// 給「被排的人」用的個人班表頁，用網址 #my=… 開啟，不載入工作台的資料：
+// 列出這個人的班次，可一鍵加入手機行事曆（.ics）。# 後面的內容不會送到網站伺服器，資料就在連結本身。
 (()=>{
  'use strict';
  const PUBLIC_URL='https://saiheigen.github.io/Roster/';
@@ -963,42 +941,6 @@ html.mini-mode body{background:var(--duty-board)}
   a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
  }
 
- // ---------- 休假填報 ----------
- // 一行文字，人看得懂、也能一次貼多則給工作台讀取：
- //   休假填報 2026/12 王小明（H012）：12/03-12/05、12/20
- //   休假填報 2026/12 王小明：無
- function leaveLine(month,name,id,days){
-  const [y,m]=month.split('-').map(Number),who=name.trim()+(id.trim()?'（'+id.trim()+'）':'');
-  const sorted=[...new Set(days)].sort(),ranges=[];
-  for(const d of sorted){const last=ranges[ranges.length-1];
-   if(last&&dayDiff(last[1],d)===1)last[1]=d;else ranges.push([d,d]);}
-  const md=s=>s.slice(5,7)+'/'+s.slice(8,10);
-  const text=ranges.length?ranges.map(([a,b])=>a===b?md(a):md(a)+'-'+md(b)).join('、'):'無';
-  return {text:'休假填報 '+y+'/'+pad(m)+' '+who+'：'+text,ranges,days:sorted.length};
- }
- function dayDiff(a,b){return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
- // 讀回多則填報（可以直接貼上 LINE 聊天紀錄，其他文字會略過）
- function parseLeave(text){
-  const out=[];
-  for(const raw of String(text).split(/\r?\n/)){
-   const m=/休假填報\s*(\d{4})\s*[\/\-年.]\s*(\d{1,2})\s*月?\s+(.+?)\s*[：:]\s*(.+?)\s*$/.exec(raw);if(!m)continue;
-   const y=Number(m[1]),mo=Number(m[2]),who=/^(.+?)\s*[（(]\s*([^）)]+?)\s*[）)]$/.exec(m[3].trim());
-   const item={line:raw.trim(),y,m:mo,month:y+'-'+pad(mo),name:(who?who[1]:m[3]).trim(),id:who?who[2].trim():'',ranges:[],none:false,error:''};
-   if(/^無$|^沒有$|^0$/.test(m[4].trim())){item.none=true;out.push(item);continue;}
-   for(const seg of m[4].split(/[、,，;；\s]+/).filter(Boolean)){
-    const r=/^(\d{1,2})\/(\d{1,2})(?:\s*[-–~～]\s*(?:(\d{1,2})\/)?(\d{1,2}))?$/.exec(seg);
-    if(!r){item.error='看不懂的日期「'+seg+'」';break;}
-    const date=(mm,dd)=>{let yy=y;if(mm<mo-6)yy++;else if(mm>mo+6)yy--;const t=new Date(Date.UTC(yy,mm-1,dd));
-     if(t.getUTCMonth()!==mm-1||t.getUTCDate()!==dd)throw Error('不存在的日期 '+mm+'/'+dd);return yy+'/'+pad(mm)+'/'+pad(dd);};
-    try{const a=date(Number(r[1]),Number(r[2])),b=r[4]?date(Number(r[3]||r[1]),Number(r[4])):a;
-     if(b<a)throw Error('日期「'+seg+'」結束早於開始');item.ranges.push([a,b]);}
-    catch(e){item.error=e.message;break;}
-   }
-   out.push(item);
-  }
-  return out;
- }
-
  // ---------- 畫面 ----------
  let host=null;
  const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;};
@@ -1040,66 +982,14 @@ html.mini-mode body{background:var(--duty-board)}
   root.append(el('p','mini-foot','班表若有異動，以單位最新公告為準；已加入行事曆的舊班次需自行刪除。這個頁面的資料就在連結本身，不會傳到任何伺服器，但拿到連結的人都看得到。'));
  }
 
- function renderLeave(month){
-  let [y,m]=month.split('-').map(Number);const first=y+'-'+pad(m);
-  const root=open(m+' 月休假填報');
-  header(root,'休假填報',y+' 年 '+m+' 月','點選休假的日期（最後一天選到休假的最後一天，不是收假日），再把產生的文字傳給排班人。');
-  const form=el('section','mini-form');
-  const nameField=el('label','mini-field');nameField.append(el('span','','姓名'));const name=el('input');name.autocomplete='name';name.placeholder='例如 王小明';name.value=store.get('roster.leaveName');nameField.append(name);
-  const idField=el('label','mini-field');idField.append(el('span','','人員編號（知道再填，同名時需要）'));const pid=el('input');pid.placeholder='例如 H012';pid.value=store.get('roster.leaveId');idField.append(pid);
-  form.append(nameField,idField);root.append(form);
-  const picked=new Set();let view={y,m};
-  const cal=el('section','mini-cal');root.append(cal);
-  const out=el('section','mini-actions');root.append(out);
-  const preview=el('p','mini-preview'),send=el('button','mini-primary','📤 傳給排班人'),copy=el('button','mini-ghost','📋 複製文字'),msg=el('p','mini-help');
-  send.type=copy.type='button';send.hidden=!navigator.share;
-  out.append(preview,send,copy,msg);
-  const line=()=>leaveLine(first,name.value,pid.value,[...picked]);
-  function refresh(){
-   const l=line(),ok=name.value.trim().length>0;
-   preview.textContent=ok?l.text:'請先填姓名';send.disabled=copy.disabled=!ok;
-   msg.textContent=l.days?'已選 '+l.days+' 天。':'沒有休假也可以傳「無」，讓排班人知道你已回覆。';
-   store.set('roster.leaveName',name.value.trim());store.set('roster.leaveId',pid.value.trim());
-  }
-  function drawCal(){
-   cal.replaceChildren();
-   const nav=el('div','mini-cal-nav'),prev=el('button','mini-ghost','‹'),next=el('button','mini-ghost','›'),title=el('b','',view.y+' 年 '+view.m+' 月');
-   prev.type=next.type='button';prev.setAttribute('aria-label','上個月');next.setAttribute('aria-label','下個月');
-   const offset=(view.y-y)*12+view.m-m;prev.disabled=offset<=-1;next.disabled=offset>=1;
-   prev.onclick=()=>{view=view.m===1?{y:view.y-1,m:12}:{y:view.y,m:view.m-1};drawCal();};
-   next.onclick=()=>{view=view.m===12?{y:view.y+1,m:1}:{y:view.y,m:view.m+1};drawCal();};
-   nav.append(prev,title,next);cal.append(nav);
-   const grid=el('div','mini-cal-grid');for(const w of WEEK)grid.append(el('span','mini-wd',w));
-   const start=new Date(Date.UTC(view.y,view.m-1,1)).getUTCDay(),days=new Date(Date.UTC(view.y,view.m,0)).getUTCDate();
-   for(let i=0;i<start;i++)grid.append(el('span',''));
-   for(let d=1;d<=days;d++){
-    const key=view.y+'-'+pad(view.m)+'-'+pad(d),b=el('button','mini-day',String(d));b.type='button';
-    const wd=(start+d-1)%7;if(wd===0||wd===6)b.classList.add('mini-weekend');
-    const sync=()=>{b.classList.toggle('on',picked.has(key));b.setAttribute('aria-pressed',String(picked.has(key)));};sync();
-    b.onclick=()=>{if(picked.has(key))picked.delete(key);else picked.add(key);sync();refresh();};
-    grid.append(b);
-   }
-   cal.append(grid);
-   const clear=el('button','mini-link','清除全部日期');clear.type='button';clear.onclick=()=>{picked.clear();drawCal();refresh();};cal.append(clear);
-  }
-  name.oninput=pid.oninput=refresh;
-  copy.onclick=async()=>{const t=line().text;try{await navigator.clipboard.writeText(t);msg.textContent='✅ 已複製，請貼到 LINE 傳給排班人。';}catch(_){preview.focus();msg.textContent='請長按上面的文字手動複製。';}};
-  send.onclick=async()=>{try{await navigator.share({text:line().text});msg.textContent='✅ 已開啟分享。';}catch(e){if(e&&e.name!=='AbortError')msg.textContent='這個 App 不支援分享，請改用「複製文字」。';}};
-  drawCal();refresh();
- }
-
  function route(){
   const h=location.hash;
   try{
    if(h.startsWith('#my=')){renderMy(decode(h.slice(4)));return;}
-   if(h.startsWith('#leave')){const m=/^#leave=(\d{4})-(\d{2})$/.exec(h);let month;
-    if(m&&Number(m[2])>=1&&Number(m[2])<=12)month=m[1]+'-'+m[2];
-    else{const d=new Date();d.setMonth(d.getMonth()+1);month=d.getFullYear()+'-'+pad(d.getMonth()+1);}
-    renderLeave(month);return;}
   }catch(e){const root=open('連結無法開啟');header(root,'哨務工作台','連結無法開啟','這個連結不完整或已損壞，請向排班人重新索取。');return;}
   close();
  }
- window.RosterMini={personalLink,calendarFile,leaveLine,parseLeave,leaveLink:month=>baseUrl()+'#leave='+month,decode};
+ window.RosterMini={personalLink,calendarFile,decode};
  route();
  window.addEventListener('hashchange',route);
 })();
@@ -1175,16 +1065,6 @@ html.mini-mode body{background:var(--duty-board)}
 <div class="lookup-matches" id="lookupMatches"></div>
 <div aria-live="polite" id="lookupResult"></div>
 </div>
-<details class="card leave-collect" id="leaveCollect">
-<summary>📨 收集休假</summary>
-<p class="help">把填報連結傳到群組，每個人在手機上點選休假日期，會產生一段文字傳回給你。收到的文字全部貼到下面（可以直接貼整段 LINE 聊天紀錄），檢查後一次加入休假。</p>
-<div class="actions"><button class="primary" id="leaveLinkCopy" type="button">📋 複製填報連結</button><button class="ghost" hidden id="leaveLinkShare" type="button">📤 分享到群組</button></div>
-<p class="help" id="leaveLinkStatus" role="status"></p>
-<textarea aria-label="填報連結訊息" class="person-share-text hidden" id="leaveLinkText" readonly spellcheck="false"></textarea>
-<label class="leave-inbox-label" for="leaveInbox">收到的填報</label>
-<textarea id="leaveInbox" placeholder="休假填報 2026/12 王小明（H012）：12/03-12/05、12/20" spellcheck="false"></textarea>
-<div class="actions"><button id="leaveInboxCheck" type="button">檢查填報</button><button class="primary" disabled id="leaveInboxApply" type="button">加入休假</button></div>
-<div aria-live="polite" id="leaveInboxResult"></div>
 </details>
 <div class="card">
 <div class="field record-category"><label for="recordCategory">紀錄項目</label><select id="recordCategory"></select></div>
@@ -5829,52 +5709,6 @@ function submitRecord(e){e.preventDefault();const def=recordDefs[currentCat];con
  const saved=saveAutoNow();
  $('recordStatus').textContent=saved?(vault?'已登記 '+label+'。加密存檔狀態見頁首。':'已儲存 '+label+'。'):'⚠ '+label+' 已登記在本頁，但本機存檔失敗。請先備份再關閉。';
 }
-// 收集休假：產生填報連結；把收到的「休假填報」文字比對名冊後加入休假紀錄（同人同日期的紀錄不重複加入）
-let leaveInboxPlan=null;
-function leaveInboxPeople(){return [...rosterPersons('door').map(p=>({...p,pool:'door'})),...rosterPersons('officer').map(p=>({...p,pool:'officer'}))];}
-function leaveInboxCheck(){
- const people=leaveInboxPeople(),items=RosterMini.parseLeave($('leaveInbox').value),box=$('leaveInboxResult');
- const byId=new Map(people.map(p=>[p.id,p])),byName=new Map();for(const p of people)byName.set(p.name,[...(byName.get(p.name)||[]),p]);
- const keyOf=(token,a,b)=>{const t=String(token||'').trim(),p=byId.get(t)||((byName.get(t)||[]).length===1?byName.get(t)[0]:null);
-  const d=x=>{try{const v=parseDate(x,monthVal());return v===null?'':dateText(v);}catch(_){return '';}};return p?p.id+'|'+d(a)+'|'+d(b||a):'';};
- const existing=new Set(lines('leave').filter(r=>!r.error&&!skipHeader(r)).map(r=>keyOf(r.fields[0],r.fields[1],r.fields[2])).filter(Boolean));
- const rows=[],add=[],replied=new Set(),seen=new Set();
- for(const it of items){
-  let p=null,note='';
-  if(it.id&&byId.has(it.id))p=byId.get(it.id);
-  else{const same=byName.get(it.name)||[];if(same.length===1)p=same[0];else note=same.length?'名冊有 '+same.length+' 位「'+it.name+'」，請對方填人員編號後重傳':'名冊找不到「'+it.name+(it.id?'（'+it.id+'）':'')+'」';}
-  if(p&&it.id&&it.id!==p.id)note='編號 '+it.id+' 不在名冊，改用姓名對到 '+p.id;
-  if(it.month!==activeMonth)note=(note?note+'；':'')+'填的是 '+it.month+'，目前排班月份是 '+activeMonth;
-  if(it.error){rows.push({it,p,status:'error',text:it.error});continue;}
-  if(!p){rows.push({it,p,status:'error',text:note});continue;}
-  replied.add(p.id);
-  if(it.none){rows.push({it,p,status:'none',text:'無休假'+(note?'（'+note+'）':'')});continue;}
-  const parts=[];
-  for(const [a,b] of it.ranges){
-   const key=p.id+'|'+a.replace(/\//g,'-')+'|'+b.replace(/\//g,'-');
-   if(existing.has(key)||seen.has(key)){parts.push(a.slice(5)+(a===b?'':'～'+b.slice(5))+' 已登記');continue;}
-   seen.add(key);add.push(p.id+'\t'+a+'\t'+b);parts.push(a.slice(5)+(a===b?'':'～'+b.slice(5)));
-  }
-  rows.push({it,p,status:'ok',text:parts.join('、')+(note?'（'+note+'）':'')});
- }
- const missing=people.filter(p=>!replied.has(p.id)&&!isInactiveAtMonthStart(p.pool,p.id));
- leaveInboxPlan=add;
- $('leaveInboxApply').disabled=!add.length;$('leaveInboxApply').textContent=add.length?'加入 '+add.length+' 筆休假':'加入休假';
- const icon={ok:'✅',none:'➖',error:'⚠'};
- box.innerHTML=items.length?`<p class="help">讀到 ${items.length} 則填報：可加入 ${add.length} 筆休假；已回覆 ${replied.size} 人，尚未回覆 ${missing.length} 人。</p>`+
-  `<ul class="leave-inbox-list">${rows.map(r=>`<li class="is-${r.status}"><b>${icon[r.status]} ${esc(r.p?r.p.rank+' '+r.p.name+'（'+r.p.id+'）':r.it.name)}</b><span>${esc(r.text)}</span></li>`).join('')}</ul>`+
-  (missing.length?`<details class="leave-missing"><summary>尚未回覆 ${missing.length} 人</summary><p>${esc(missing.map(p=>p.name).join('、'))}</p></details>`:'')
-  :'<p class="help">沒有讀到「休假填報」開頭的文字。請確認貼上的是對方從填報頁傳回的內容。</p>';
-}
-function leaveInboxApply(){
- if(!leaveInboxPlan?.length)return;
- const el=$('leave'),arr=el.value?el.value.split(/\r?\n/):[];while(arr.length&&arr[arr.length-1].trim()==='')arr.pop();
- const n=leaveInboxPlan.length;arr.push(...leaveInboxPlan);el.value=arr.join('\n');
- leaveInboxPlan=null;refreshUX();invalidateResult();renderRecords();
- const saved=saveAutoNow();leaveInboxCheck();
- $('leaveInboxResult').insertAdjacentHTML('afterbegin',`<p class="message">${saved?'已加入 '+n+' 筆休假並儲存。':'⚠ 已加入 '+n+' 筆休假，但本機存檔失敗，請先備份。'}可在下方「已登記紀錄」或「人員查詢」核對。</p>`);
-}
-function leaveLinkMessage(){const [y,m]=activeMonth.split('-').map(Number);return '請填 '+y+' 年 '+m+' 月的休假（點連結、選日期，再把產生的文字傳回給我；沒有休假也請傳「無」）：\n'+RosterMini.leaveLink(activeMonth);}
 function invalidateResult(){stopOffline('');discardMinimal();closeReadonlyPreview();$('shareTextArea').value='';$('shareCopyBox').classList.add('hidden');if(last){cacheCurrentSchedule();last=null;loadedSig='';$('results').classList.add('hidden');$('noResults').classList.remove('hidden');}refreshDashboard();}
 function reviewInputs(){refreshUX();$('reviewDoor').textContent=rosterPersons('door').length+' 人';$('reviewOfficer').textContent=rosterPersons('officer').length+' 人';$('reviewEvents').textContent=recordIds.reduce((s,id)=>s+countRows(id),0)+' 筆';
  try{const m=build();
@@ -6873,11 +6707,6 @@ function initResultNavigation(){
   $('agendaLink').onclick=()=>{if(!ready())return;if(!personShifts(agendaCurrent.pool,agendaCurrent.p).length){say('ℹ 此人本月沒有班。');return;}
    const p=agendaCurrent.p;copyPlainText((p.name||p.id)+' '+last.m.month.m+' 月班表（點開可加入手機行事曆）：'+personalLinkFor(agendaCurrent.pool,p),$('agendaShareText'),say);};
   $('agendaSend').onclick=async()=>{if(!ready())return;try{await navigator.share({title:(agendaCurrent.p.name||agendaCurrent.p.id)+' 班表',text:text()});say('✅ 已開啟分享。');}catch(e){if(e&&e.name!=='AbortError')say('ℹ 這個 App 不支援系統分享，請改用「複製此人班表」。');}};
-  {const say=m=>$('leaveLinkStatus').textContent=m;
-   $('leaveLinkCopy').onclick=()=>copyPlainText(leaveLinkMessage(),$('leaveLinkText'),say);
-   $('leaveLinkShare').hidden=!navigator.share;
-   $('leaveLinkShare').onclick=async()=>{try{await navigator.share({text:leaveLinkMessage()});say('✅ 已開啟分享。');}catch(e){if(e&&e.name!=='AbortError')say('ℹ 這個 App 不支援分享，請改用「複製填報連結」。');}};
-   $('leaveInboxCheck').onclick=leaveInboxCheck;$('leaveInboxApply').onclick=leaveInboxApply;}
   $('agendaRecords').onclick=()=>{if(!agendaCurrent)return;lookupId=agendaCurrent.p.id;showStep('records');renderLookup();setTimeout(()=>$('personLookup').scrollIntoView({block:'start',behavior:'smooth'}),80);};
  }
 
