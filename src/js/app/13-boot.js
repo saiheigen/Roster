@@ -50,7 +50,7 @@ $('roInlineOfficer').onclick=()=>{inlinePool='officer';renderReadonlyInline();};
 $('roInlineSearch').oninput=renderReadonlyInline;
 $('roInlineDate').onchange=()=>{const d=inlineReadonlyDate($('roInlineDate').value);if(d&&d>=$('roInlineDate').min&&d<=$('roInlineDate').max){inlineDay=d;renderReadonlyInline();}};
 $('roInlinePrev').onclick=()=>moveReadonlyInlineDay(-1);$('roInlineNext').onclick=()=>moveReadonlyInlineDay(1);
-$('sharePreview').onclick=previewReadonly;$('shareFile').onclick=shareOrDownload;$('shareText').onclick=copyReadonlyText;$('shareCopyClose').onclick=()=>{$('shareCopyBox').classList.add('hidden');};$('shareClose').onclick=closeReadonlyPreview;
+$('shareLink').onclick=copyRosterLink;$('shareLinkSend').onclick=sendRosterLink;$('sharePreview').onclick=previewReadonly;$('shareFile').onclick=shareOrDownload;$('shareText').onclick=copyReadonlyText;$('shareCopyClose').onclick=()=>{$('shareCopyBox').classList.add('hidden');};$('shareClose').onclick=closeReadonlyPreview;
  $('agendaPerson').addEventListener('change',renderPersonalAgenda);
  $('ruleSelfTest').onclick=runRuleSelfTests;$('integrityRun').onclick=showIndependentAudit;
  $('precisionAll').onclick=async()=>{

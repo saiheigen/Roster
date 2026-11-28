@@ -76,9 +76,11 @@ function refreshReadonlyPanel(){
  const gaps=last?(last.solutions.door.missing+last.solutions.officer.missing):0;
  $('shareGuard').textContent=error?'⚠ '+error:
  locked?'🔒 本月已封存。產生的是當前封存班表的快照；仍不代表正式核定。':
- '⚠ 目前為草稿'+(gaps?`（尚缺 ${gaps} 班）`:'')+'；下載檔案會明顯標記草稿，不應當成正式班表。';
+ '⚠ 目前為草稿'+(gaps?`（尚缺 ${gaps} 班）`:'')+'；連結與檔案都會標示草稿，不應當成正式班表。';
  $('sharePreview').disabled=!!error;
- $('shareFile').disabled=!!error; $('shareText').disabled=!!error;
+ $('shareFile').disabled=!!error; $('shareText').disabled=!!error; $('shareLink').disabled=$('shareLinkSend').disabled=!!error;
+ $('shareLinkSend').hidden=!navigator.share;
+ if(!error&&last)try{rosterLinkMessage().catch(()=>{});}catch(_){} // 先在背景產生連結，按下時可立刻複製
  if(sharePreviewFingerprint&&(error||sharePreviewFingerprint!==readonlyFingerprint()))closeReadonlyPreview();
  if(!$('shareCopyBox').classList.contains('hidden'))$('shareCopyBox').classList.add('hidden');
 }
@@ -192,6 +194,50 @@ function previewReadonly(){
 }
 
 function readonlyShareName(){return `唯讀班表_${activeMonth}_${isLocked()?'已封存_非核定':'草稿'}.html`;}
+// 全單位班表連結：整個月的班表壓縮後放在連結 # 後面（格式見 src/js/mini-pages.js 的 #roster=）
+function rosterLinkData(){
+ const B64=RosterMini.B64,names=[],ranks=[],pr=[],index=new Map(),k={},hol=new Set();
+ const dom=t=>Number(dateText(t.day).slice(8,10)),days=Number(dateText(last.m.month.last).slice(8,10));
+ for(const pool of ['door','officer'])for(const p of last.m.staff[pool])if(!index.has(p.key)){
+  index.set(p.key,names.length);names.push(p.name||p.id);const r=p.rank||'';if(!ranks.includes(r))ranks.push(r);pr.push(ranks.indexOf(r));}
+ if(names.length>4000)throw Error('人數過多，無法放進連結');
+ for(const pool of ['door','officer']){
+  const sol=last.solutions[pool],slots=[],slotIndex=new Map(),d=Array(days).fill(0);let x='',a='',ordered=true;
+  for(const task of sol.tasks.slice().sort((p,q)=>p.day-q.day||p.num-q.num)){
+   const key=task.start+'|'+task.dur+'|'+task.num;if(!slotIndex.has(key)){slotIndex.set(key,slots.length);slots.push([task.start,task.dur,task.num]);}
+   const day=dom(task),si=slotIndex.get(key);if(si>=64)throw Error('時段過多，無法放進連結');
+   if(si!==d[day-1])ordered=false;d[day-1]++;x+=B64[si];
+   const who=sol.res.get(task.key),v=who?index.get(who.key):4095;a+=B64[v>>6]+B64[v&63];
+   if(task.holiday)hol.add(day);
+  }
+  k[pool]=ordered?{s:slots,d,a}:{s:slots,d,x,a};
+ }
+ return {v:3,m:activeMonth,st:isLocked()?'a':'d',ref:scheduleReferenceCode(),c:localToday(),n:names,r:ranks,pr,k,h:[...hol].sort((p,q)=>p-q)};
+}
+let rosterLinkCache={fp:'',promise:null};
+function rosterLinkMessage(){
+ const fp=readonlyFingerprint();
+ if(rosterLinkCache.fp!==fp)rosterLinkCache={fp,promise:RosterMini.rosterLink(rosterLinkData()).then(url=>{
+  const [y,m]=activeMonth.split('-').map(Number);
+  return y+' 年 '+m+' 月勤務班表（'+(isLocked()?'已封存':'草稿，尚未封存')+'）：點開後輸入自己的姓名，就能看到自己的班並加入手機行事曆。\n'+url;})};
+ return rosterLinkCache.promise;
+}
+async function copyRosterLink(){
+ const say=m=>$('shareStatus').textContent=m;
+ if(!shareConsentOk())return;const error=readonlyEligibility();if(error){say('⚠ '+error);return;}
+ const text=rosterLinkMessage();
+ // iPhone Safari 要求在按下的當下就寫入剪貼簿；用 ClipboardItem 搭配還在產生中的內容
+ try{if(window.ClipboardItem&&navigator.clipboard?.write){await navigator.clipboard.write([new ClipboardItem({'text/plain':text.then(t=>new Blob([t],{type:'text/plain'}))})]);
+  say('✅ 已複製班表連結，貼到 LINE 群組即可。改班後請重新複製。');return;}}catch(_){}
+ try{if(await copyPlainText(await text,$('shareLinkText'),say))say('✅ 已複製班表連結，貼到 LINE 群組即可。改班後請重新複製。');}
+ catch(e){say('⚠ 無法產生班表連結：'+e.message);}
+}
+async function sendRosterLink(){
+ const say=m=>$('shareStatus').textContent=m;
+ if(!shareConsentOk())return;const error=readonlyEligibility();if(error){say('⚠ '+error);return;}
+ try{await navigator.share({text:await rosterLinkMessage()});say('✅ 已開啟分享。改班後請重新分享。');}
+ catch(e){say(e?.name==='AbortError'?'ℹ 已取消分享。':'ℹ 這個 App 不支援分享，請改用「複製班表連結」。');}
+}
 function shareConsentOk(){
  if($('shareConsent').checked)return true;
  $('shareStatus').textContent='⚠ 請先確認分享對象與管道符合單位規定。';$('shareConsent').focus();return false;
@@ -230,7 +276,7 @@ function downloadReadonly(){
  }catch(e){$('shareStatus').textContent='⚠ '+e.message;}
 }
 function readonlyPlainText(){
- const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.5','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
+ const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.6','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
  for(const pool of ['door','officer']){
   rows.push('',`【${pool==='door'?'大門衛哨':'安全士官'}】`);
   let prev='';for(const r of p[pool]){

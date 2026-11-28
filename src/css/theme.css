@@ -93,3 +93,16 @@ html.mini-mode body{background:var(--duty-board)}
 /* 個人班表分享的連結勾選 */
 .person-share-options .share-check{flex-direction:row;align-items:center;gap:8px;flex-basis:100%;font-size:14px;color:var(--duty-ink)}
 .person-share-options .share-check input{width:20px;height:20px;accent-color:var(--duty-green)}
+
+/* 全單位班表連結頁 */
+.mini-back{margin:12px 0 0;border:0;background:none;color:var(--duty-green-deep);font:inherit;font-size:15px;font-weight:700;padding:8px 0;cursor:pointer}
+.mini-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px;padding:4px;border-radius:12px;background:#e6ebe8}
+.mini-tabs button{min-height:44px;border:0;border-radius:9px;background:none;font:inherit;font-weight:700;color:#3d4c56;cursor:pointer}
+.mini-tabs button[aria-pressed="true"]{background:#fff;color:var(--duty-ink);box-shadow:0 1px 3px rgba(19,40,59,.15)}
+.mini-people{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mini-person{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:52px;padding:10px 14px;border:1px solid var(--duty-line,#dde3df);border-radius:12px;background:#fff;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.mini-person b{font-size:17px}
+.mini-person small{color:#5d6b74;font-size:13px}
+.mini-pool{margin:14px 0 8px;font-size:16px}
+.mini-day-list .mini-shift{grid-template-columns:5.2em 1fr auto}
+.mini-day-list .mini-time{font-size:18px}

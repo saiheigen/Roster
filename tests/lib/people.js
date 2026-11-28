@@ -2,6 +2,7 @@
 // 給被排的人：個人班表連結（加入行事曆）
 //   1. 個人班表分享附上的連結，打開後列出的班次和工作台一致
 //   2. 下載的 .ics：每班一個事件、時間正確（台灣時間換成 UTC）、每行不超過 75 位元組、有提醒
+//   3. 全單位班表連結：長度可傳 LINE、搜尋姓名看到自己的班、依日期查看、再次打開記得上次查的人
 const fs = require('fs');
 
 async function peopleFeatures(K, target) {
@@ -53,6 +54,36 @@ async function peopleFeatures(K, target) {
     if (myErrors.length) ok('個人班表頁沒有錯誤', false, myErrors[0]);
     await my.close();
 
+
+    // 3. 全單位班表連結（分享唯讀班表 › 複製班表連結）
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
+    await page.evaluate(() => document.getElementById('shareLink').click());
+    await page.waitForTimeout(1200);
+    let msg = await page.evaluate(async () => { try { return await navigator.clipboard.readText(); } catch (_) { return ''; } });
+    if (!/#roster=/.test(msg)) msg = await page.evaluate(() => document.getElementById('shareLinkText').value);
+    const rosterUrl = (msg.match(/https:\/\/\S+#roster=[A-Za-z0-9_-]+/) || [''])[0];
+    ok('全單位班表連結：已複製且長度可傳 LINE（單則上限約 5000 字）', rosterUrl && msg.length < 4500, `訊息 ${msg.length} 字元：${msg.split('\n')[0]}`);
+    const rv = await page.context().browser().newPage(); const rvErrors = []; rv.on('pageerror', e => rvErrors.push(e.message));
+    await rv.goto(local(rosterUrl)); await rv.waitForTimeout(1000);
+    const target = { id: door.people[5].id, name: roster.find(r => r.id === door.people[5].id).name };
+    await rv.fill('.mini-field input', target.name); await rv.waitForTimeout(200);
+    const hit = await rv.$$eval('.mini-person', bs => bs.map(b => b.textContent));
+    await rv.click('.mini-person >> nth=0'); await rv.waitForTimeout(400);
+    const n = await rv.$$eval('.mini-shift', x => x.length), want = door.tasks.filter(t => t.who === target.id).length;
+    const head = await rv.evaluate(() => document.querySelector('.mini-head h1').textContent);
+    ok('全單位班表連結：搜尋姓名後列出的班次和工作台一致', head.includes(target.name) && n === want && hit.length >= 1, `搜尋到 ${hit.length} 人；頁面 ${n} 班，工作台 ${want} 班`);
+    // 依日期：第 1 天大門＋安官的班數
+    await rv.click('.mini-back'); await rv.click('.mini-tabs button >> nth=1'); await rv.waitForTimeout(300);
+    const first = Math.min(...door.tasks.map(t => t.day));
+    const dayRows = await rv.$$eval('.mini-day-list .mini-shift', x => x.length);
+    const wantDay = door.tasks.filter(t => t.day === first).length + dump.officer.tasks.filter(t => t.day === first).length;
+    ok('全單位班表連結：依日期查看列出當天所有班', dayRows === wantDay, `頁面 ${dayRows} 班，工作台 ${wantDay} 班`);
+    // 第二次打開：直接顯示上次查的人
+    await rv.goto('about:blank'); await rv.goto(local(rosterUrl)); await rv.waitForTimeout(1000);
+    const again = await rv.evaluate(() => document.querySelector('.mini-head h1')?.textContent || '');
+    ok('全單位班表連結：再次打開直接顯示上次查的人', again.includes(target.name), again);
+    if (rvErrors.length) ok('全單位班表頁沒有錯誤', false, rvErrors[0]);
+    await rv.close();
   } catch (e) { ok('流程執行', false, e.stack.split('\n').slice(0, 2).join(' ')); }
   if (errors.length) ok('工作台沒有頁面錯誤', false, errors[0]);
   await page.close();

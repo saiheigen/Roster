@@ -12,7 +12,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="哨務工作台" name="apple-mobile-web-app-title"/>
-<title>哨務工作台 v10.5｜離線整合版</title>
+<title>哨務工作台 v10.6｜離線整合版</title>
 <style>
 :root{font-synthesis:none}
 *{box-sizing:border-box}
@@ -873,10 +873,25 @@ html.mini-mode body{background:var(--duty-board)}
 .person-share-options .share-check{flex-direction:row;align-items:center;gap:8px;flex-basis:100%;font-size:14px;color:var(--duty-ink)}
 .person-share-options .share-check input{width:20px;height:20px;accent-color:var(--duty-green)}
 
+/* 全單位班表連結頁 */
+.mini-back{margin:12px 0 0;border:0;background:none;color:var(--duty-green-deep);font:inherit;font-size:15px;font-weight:700;padding:8px 0;cursor:pointer}
+.mini-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px;padding:4px;border-radius:12px;background:#e6ebe8}
+.mini-tabs button{min-height:44px;border:0;border-radius:9px;background:none;font:inherit;font-weight:700;color:#3d4c56;cursor:pointer}
+.mini-tabs button[aria-pressed="true"]{background:#fff;color:var(--duty-ink);box-shadow:0 1px 3px rgba(19,40,59,.15)}
+.mini-people{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mini-person{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:52px;padding:10px 14px;border:1px solid var(--duty-line,#dde3df);border-radius:12px;background:#fff;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.mini-person b{font-size:17px}
+.mini-person small{color:#5d6b74;font-size:13px}
+.mini-pool{margin:14px 0 8px;font-size:16px}
+.mini-day-list .mini-shift{grid-template-columns:5.2em 1fr auto}
+.mini-day-list .mini-time{font-size:18px}
+
 </style></head>
 <body><script>
-// 給「被排的人」用的個人班表頁，用網址 #my=… 開啟，不載入工作台的資料：
-// 列出這個人的班次，可一鍵加入手機行事曆（.ics）。# 後面的內容不會送到網站伺服器，資料就在連結本身。
+// 給「被排的人」用的小頁面，用網址 # 後面的內容開啟，不載入工作台的資料：
+//   #my=…      個人班表：列出這個人的班次，可一鍵加入手機行事曆（.ics）
+//   #roster=…  全單位班表：搜尋自己的姓名看自己的班（同樣可加入行事曆），或依日期查看當天所有班
+// # 後面的內容不會送到網站伺服器，資料就在連結本身。
 (()=>{
  'use strict';
  const PUBLIC_URL='https://saiheigen.github.io/Roster/';
@@ -954,9 +969,10 @@ html.mini-mode body{background:var(--duty-board)}
   const h=el('header','mini-head');h.append(el('p','mini-kicker',kicker),el('h1','',title));if(sub)h.append(el('p','mini-sub',sub));root.append(h);return h;
  }
 
- function renderMy(data){
+ function renderMy(data,back){
   const shifts=shiftsOf(data),[y,m]=data.m.split('-').map(Number);
   const root=open((data.n||'個人')+' '+m+' 月班表');
+  if(back){const b=el('button','mini-back','← 換一個人／依日期查看');b.type='button';b.onclick=back;root.append(b);}
   header(root,y+' 年 '+m+' 月・'+poolName(data.k),(data.r?data.r+' ':'')+(data.n||''),'共 '+shifts.length+' 班・'+shifts.reduce((n,t)=>n+t.dur,0)+' 小時');
   const state=el('p','mini-note'+(data.st==='a'?'':' warn'),(data.st==='a'?'已封存的班表':'草稿班表（尚未封存）')+'・'+(data.c||'')+' 產生'+(data.ref?'・版次 '+data.ref:''));
   root.append(state);
@@ -982,21 +998,122 @@ html.mini-mode body{background:var(--duty-board)}
   root.append(el('p','mini-foot','班表若有異動，以單位最新公告為準；已加入行事曆的舊班次需自行刪除。這個頁面的資料就在連結本身，不會傳到任何伺服器，但拿到連結的人都看得到。'));
  }
 
- function route(){
+ // ---------- 全單位班表 ----------
+ // 連結裡的資料（v3，壓縮後放在 # 後面；134 人整月約 2,800 字元，LINE 單則上限約 5,000 字）：
+ //   {v:3,m:'YYYY-MM',st,ref,c,n:[姓名…],r:[級職清單],pr:[每人級職序…],h:[假日的日期…],
+ //    k:{door:{s:[[開始時,時數,班序]…],d:[每天幾班…],x:'每班的時段序（每字一班，若每天依序排滿則省略）',a:'每班的人員序（每兩字一班，__ 為缺班）'},officer:{…}}}
+ // 讀進來後轉成 {p:[[姓名,級職]…],k:{door:{s,t:[日,時段序,人員序(-1 缺班),…]}}} 給畫面使用
+ async function packRoster(data){
+  const bytes=new TextEncoder().encode(JSON.stringify(data));
+  if(typeof CompressionStream!=='function')return 'j'+encode(data);
+  const out=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+  let bin='';for(let i=0;i<out.length;i+=0x8000)bin+=String.fromCharCode.apply(null,out.subarray(i,i+0x8000));
+  return 'z'+btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+ }
+ async function unpackRoster(text){
+  if(text[0]==='j')return decode(text.slice(1));
+  if(text[0]!=='z')throw Error('格式不符');
+  if(typeof DecompressionStream!=='function'){const e=Error('old');e.old=true;throw e;}
+  const b=text.slice(1).replace(/-/g,'+').replace(/_/g,'/'),bin=atob(b+'==='.slice((b.length+3)%4));
+  const raw=await new Response(new Blob([Uint8Array.from(bin,c=>c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+  return JSON.parse(new TextDecoder().decode(raw));
+ }
+ const B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+ async function rosterLink(data){return baseUrl()+'#roster='+await packRoster(data);}
+ function expandRoster(R){
+  if(R.v!==3)throw Error('格式不符');
+  const p=R.n.map((name,i)=>[name,R.r[R.pr[i]]||'']),k={};
+  for(const [pool,P] of Object.entries(R.k)){
+   const t=[];let j=0;
+   P.d.forEach((count,di)=>{for(let q=0;q<count;q++,j++){
+    const si=P.x?B64.indexOf(P.x[j]):q,v=B64.indexOf(P.a[2*j])*64+B64.indexOf(P.a[2*j+1]);
+    t.push(di+1,si,v===4095?-1:v);}});
+   k[pool]={s:P.s,t};
+  }
+  return {...R,p,k};
+ }
+ // 把全單位資料轉成某個人的個人班表資料（與 #my= 同格式），沿用個人班表頁
+ function personOf(R,idx){
+  const hol=new Set(R.h||[]),out={};
+  for(const k of ['door','officer']){
+   const P=R.k[k];if(!P)continue;const s=[];
+   for(let i=0;i<P.t.length;i+=3)if(P.t[i+2]===idx){const [start,dur,num]=P.s[P.t[i+1]];s.push([P.t[i],start,dur,num,hol.has(P.t[i])?1:0]);}
+   if(s.length)out[k]=s;
+  }
+  return out;
+ }
+ function renderRoster(R){
+  const [y,m]=R.m.split('-').map(Number),days=new Date(Date.UTC(y,m,0)).getUTCDate();
+  const show=view=>{
+   const root=open(m+' 月勤務班表');
+   header(root,y+' 年 '+m+' 月','勤務班表',(R.st==='a'?'已封存的班表':'草稿班表（尚未封存）')+'・'+(R.c||'')+' 產生'+(R.ref?'・版次 '+R.ref:''));
+   const tabs=el('div','mini-tabs'),meBtn=el('button','','查我的班'),dayBtn=el('button','','依日期查看');
+   meBtn.type=dayBtn.type='button';meBtn.setAttribute('aria-pressed',String(view==='me'));dayBtn.setAttribute('aria-pressed',String(view==='day'));
+   meBtn.onclick=()=>show('me');dayBtn.onclick=()=>show('day');tabs.append(meBtn,dayBtn);root.append(tabs);
+   if(view==='me'){
+    const box=el('section','mini-actions'),label=el('label','mini-field');label.append(el('span','','輸入你的姓名'));
+    const q=el('input');q.type='search';q.placeholder='例如 王小明';q.autocomplete='name';label.append(q);
+    const list=el('ul','mini-people');box.append(label,list);root.append(box);
+    const draw=()=>{
+     list.replaceChildren();const t=q.value.trim();if(!t){list.append(el('li','mini-help','輸入姓名中的任一字即可。'));return;}
+     const hits=R.p.map((x,i)=>({x,i})).filter(({x})=>x[0].includes(t)).slice(0,20);
+     if(!hits.length){list.append(el('li','mini-help','找不到「'+t+'」。請確認姓名，或向排班人詢問。'));return;}
+     for(const {x,i} of hits){
+      const own=personOf(R,i),n=(own.door||[]).length+(own.officer||[]).length,li=el('li'),b=el('button','mini-person');b.type='button';
+      b.append(el('b','',(x[1]?x[1]+' ':'')+x[0]),el('small','',n?'本月 '+n+' 班':'本月沒有班'));
+      b.onclick=()=>{store.set('roster.me',x[0]);openPerson(i);};li.append(b);list.append(li);
+     }
+    };
+    q.oninput=draw;draw();
+   }else{
+    const box=el('section','mini-actions'),label=el('label','mini-field');label.append(el('span','','日期'));
+    const sel=el('select');for(let d=1;d<=days;d++){const o=el('option','',pad(m)+'/'+pad(d)+'（'+WEEK[new Date(Date.UTC(y,m-1,d)).getUTCDay()]+'）');o.value=d;sel.append(o);}
+    const now=new Date(),today=now.getFullYear()===y&&now.getMonth()+1===m?now.getDate():1;sel.value=String(today);
+    label.append(sel);box.append(label);const out=el('div','mini-day-list');box.append(out);root.append(box);
+    const draw=()=>{
+     out.replaceChildren();const d=Number(sel.value);
+     for(const k of ['door','officer']){
+      const P=R.k[k];if(!P)continue;const rows=[];
+      for(let i=0;i<P.t.length;i+=3)if(P.t[i]===d)rows.push({slot:P.s[P.t[i+1]],who:P.t[i+2]});
+      rows.sort((a,b)=>a.slot[2]-b.slot[2]);
+      out.append(el('h2','mini-pool',poolName(k)));
+      const ol=el('ol','mini-shifts');
+      for(const r of rows){const [start,dur,num]=r.slot,li=el('li','mini-shift'+(start>=22||start<6?' is-night':''));
+       const who=r.who>=0?R.p[r.who]:null;
+       li.append(el('b','mini-time',pad(start)+'–'+pad((start+dur)%24||24)),el('span','mini-date',who?(who[1]?who[1]+' ':'')+who[0]:'缺班'),el('small','','第 '+num+' 班'));ol.append(li);}
+      if(!rows.length)ol.append(el('li','mini-empty','當天沒有班。'));
+      out.append(ol);
+     }
+    };
+    sel.onchange=draw;draw();
+   }
+   root.append(el('p','mini-foot','班表若有異動，以單位最新公告為準。這個頁面的資料就在連結本身，不會傳到任何伺服器，但拿到連結的人都看得到全單位的班表。'));
+  };
+  const openPerson=i=>{
+   const x=R.p[i],own=personOf(R,i),k=own.door?'door':own.officer?'officer':'door';
+   renderMy({m:R.m,n:x[0],r:x[1],k,st:R.st,ref:R.ref,c:R.c,s:own[k]||[]},()=>show('me'));
+  };
+  const me=store.get('roster.me'),mine=me?R.p.findIndex(x=>x[0]===me):-1;
+  if(mine>=0)openPerson(mine);else show('me');
+ }
+
+ async function route(){
   const h=location.hash;
   try{
    if(h.startsWith('#my=')){renderMy(decode(h.slice(4)));return;}
-  }catch(e){const root=open('連結無法開啟');header(root,'哨務工作台','連結無法開啟','這個連結不完整或已損壞，請向排班人重新索取。');return;}
+   if(h.startsWith('#roster=')){open('勤務班表');renderRoster(expandRoster(await unpackRoster(h.slice(8))));return;}
+  }catch(e){const root=open('連結無法開啟');
+   header(root,'哨務工作台','連結無法開啟',e&&e.old?'這支手機的瀏覽器版本太舊，打不開壓縮的班表連結（iPhone 需 iOS 16.4 以上）。請更新系統，或向排班人索取個人班表連結。':'這個連結不完整或已損壞，請向排班人重新索取。');return;}
   close();
  }
- window.RosterMini={personalLink,calendarFile,decode};
+ window.RosterMini={personalLink,rosterLink,calendarFile,decode,unpackRoster,expandRoster,B64};
  route();
  window.addEventListener('hashchange',route);
 })();
 </script><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
 <h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
 <p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
-<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.5</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
+<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.6</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
 <div aria-live="polite" id="quickMessage" role="alert"></div>
 <div class="layout">
 <aside class="sidebar"><div class="box"><div class="label">工作區</div><nav aria-label="網站功能" class="stepnav"><button class="active" data-step="home"><span class="circle">◫</span> 總覽</button><button data-step="setup"><span class="circle">♙</span> 人員名冊</button><button data-step="records"><span class="circle">▦</span> 休假與勤務</button><button data-step="results"><span class="circle">≡</span> 每日班表</button></nav><div class="sidebar-divider"></div><div class="sidebar-note"><span class="dot"></span>本機離線運作<br/><small>排班結果須經單位審核</small></div></div></aside>
@@ -1166,10 +1283,11 @@ html.mini-mode body{background:var(--duty-board)}
 <div class="card"><div class="result-toolbar"><button class="pill" id="missingToggle" type="button">只看缺班：關</button><div class="field"><label for="filterText">篩選月表備註</label><input id="filterText" placeholder="輸入缺班原因或備註" type="search"/></div><button id="clearFilter" type="button">清除篩選</button></div><p class="help" id="tableInfo"></p><div class="tablewrap"><table><thead><tr><th>日期</th><th>星期</th><th>班號</th><th>時段</th><th>時數</th><th>編號</th><th>級職</th><th>姓名</th><th>檢查</th><th>備註</th></tr></thead><tbody id="tableBody"></tbody></table></div><h3 style="margin-top:22px">個人班數</h3><div class="tablewrap"><table><thead><tr><th>編號</th><th>姓名</th><th>班數</th><th>時數</th><th>夜間</th><th>午間</th><th>假期班數</th><th>督伙折抵</th><th>跨月補償</th><th>基本整數配額</th><th>建議實站班數</th><th>勤務點數</th><th>點數累計差額</th></tr></thead><tbody id="statBody"></tbody></table></div></div>
 </details><details class="ux-toolbox ux-publish" id="uxPublish"><summary>封存與分享</summary><div class="archive-panel" id="archivePanel"><div><strong id="archiveTitle">本月尚未封存</strong><p id="archiveDescription">確認班表後，可以封存本月，防止誤觸重新排班或調班。封存不代表單位正式核定。</p><div id="scheduleReference"></div><div class="archive-warning" id="archiveCarry"></div></div><button id="archiveToggle" type="button">封存本月班表</button></div><section aria-labelledby="shareHeading" class="share-panel" id="sharePanel">
 <div class="share-heading"><h3 id="shareHeading">↗ 分享唯讀班表</h3><span class="share-pill draft" id="shareBadge">草稿</span></div>
-<p class="share-description">唯讀班表包含姓名、時段與勤務統計。</p>
+<p class="share-description">產生一條班表連結傳到群組：每個人點開後輸入自己的姓名，就能看到自己的班、加入手機行事曆，也能依日期查看當天所有班。連結裡包含全單位的姓名與時段。</p>
 <div class="help" id="shareGuard" role="status">封存完成的班表會顯示「已封存」；未封存會標示為草稿。封存不代表單位核定。</div>
-<label class="share-consent"><input id="shareConsent" type="checkbox"/><span>我了解檔案包含人員姓名、哨務時間及個人勤務統計，會先確認分享對象與傳送方式符合單位規定。</span></label>
-<div class="share-actions v52-actions"><button class="ghost" id="sharePreview" type="button">👁 預覽唯讀版</button><button class="primary" id="shareFile" type="button">📤 分享／下載檔案</button><button class="ghost" id="shareText" type="button">📋 複製文字班表</button></div>
+<label class="share-consent"><input id="shareConsent" type="checkbox"/><span>我了解班表連結與檔案包含人員姓名、哨務時間及個人勤務統計，會先確認分享對象與傳送方式符合單位規定。</span></label>
+<div class="share-actions v52-actions"><button class="primary" id="shareLink" type="button">🔗 複製班表連結</button><button class="ghost" hidden id="shareLinkSend" type="button">📤 分享連結</button><button class="ghost" id="sharePreview" type="button">👁 預覽唯讀版</button><button class="ghost" id="shareText" type="button">📋 複製文字班表</button><button class="ghost" id="shareFile" type="button">⬇ 下載檔案（列印用）</button></div>
+<textarea aria-label="班表連結" class="person-share-text hidden" id="shareLinkText" readonly spellcheck="false"></textarea>
 <div class="person-share" id="personShare">
 <h3>👤 個人班表</h3>
 <p class="share-description">每個人一段「我哪幾天站哪一班」，可直接貼到 LINE 群組或私訊給本人。</p>
@@ -1209,7 +1327,7 @@ html.mini-mode body{background:var(--duty-board)}
 <dialog id="backupPassDialog"><form method="dialog"><label for="backupPass">加密備份密碼</label><input id="backupPass" type="password" autocomplete="current-password"><button value="open">還原</button><button value="cancel">取消</button></form></dialog>
 <div class="row"><div class="field"><label for="snapshotPicker">本機自動快照（最多 2 份）</label><select id="snapshotPicker"><option value="">目前沒有自動快照</option></select></div><button id="restoreSnapshot" type="button">還原選取的快照</button></div>
 <p class="help" id="snapshotNotice">自動快照約每 6 小時保留一份較舊的進度，最多兩份。快照與主存檔在同一個 App 儲存空間，不能替代外部備份。</p>
-<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.5 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
+<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.6 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
 </main></div>
 
 <nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
@@ -4845,9 +4963,11 @@ function refreshReadonlyPanel(){
  const gaps=last?(last.solutions.door.missing+last.solutions.officer.missing):0;
  $('shareGuard').textContent=error?'⚠ '+error:
  locked?'🔒 本月已封存。產生的是當前封存班表的快照；仍不代表正式核定。':
- '⚠ 目前為草稿'+(gaps?`（尚缺 ${gaps} 班）`:'')+'；下載檔案會明顯標記草稿，不應當成正式班表。';
+ '⚠ 目前為草稿'+(gaps?`（尚缺 ${gaps} 班）`:'')+'；連結與檔案都會標示草稿，不應當成正式班表。';
  $('sharePreview').disabled=!!error;
- $('shareFile').disabled=!!error; $('shareText').disabled=!!error;
+ $('shareFile').disabled=!!error; $('shareText').disabled=!!error; $('shareLink').disabled=$('shareLinkSend').disabled=!!error;
+ $('shareLinkSend').hidden=!navigator.share;
+ if(!error&&last)try{rosterLinkMessage().catch(()=>{});}catch(_){} // 先在背景產生連結，按下時可立刻複製
  if(sharePreviewFingerprint&&(error||sharePreviewFingerprint!==readonlyFingerprint()))closeReadonlyPreview();
  if(!$('shareCopyBox').classList.contains('hidden'))$('shareCopyBox').classList.add('hidden');
 }
@@ -4961,6 +5081,50 @@ function previewReadonly(){
 }
 
 function readonlyShareName(){return `唯讀班表_${activeMonth}_${isLocked()?'已封存_非核定':'草稿'}.html`;}
+// 全單位班表連結：整個月的班表壓縮後放在連結 # 後面（格式見 src/js/mini-pages.js 的 #roster=）
+function rosterLinkData(){
+ const B64=RosterMini.B64,names=[],ranks=[],pr=[],index=new Map(),k={},hol=new Set();
+ const dom=t=>Number(dateText(t.day).slice(8,10)),days=Number(dateText(last.m.month.last).slice(8,10));
+ for(const pool of ['door','officer'])for(const p of last.m.staff[pool])if(!index.has(p.key)){
+  index.set(p.key,names.length);names.push(p.name||p.id);const r=p.rank||'';if(!ranks.includes(r))ranks.push(r);pr.push(ranks.indexOf(r));}
+ if(names.length>4000)throw Error('人數過多，無法放進連結');
+ for(const pool of ['door','officer']){
+  const sol=last.solutions[pool],slots=[],slotIndex=new Map(),d=Array(days).fill(0);let x='',a='',ordered=true;
+  for(const task of sol.tasks.slice().sort((p,q)=>p.day-q.day||p.num-q.num)){
+   const key=task.start+'|'+task.dur+'|'+task.num;if(!slotIndex.has(key)){slotIndex.set(key,slots.length);slots.push([task.start,task.dur,task.num]);}
+   const day=dom(task),si=slotIndex.get(key);if(si>=64)throw Error('時段過多，無法放進連結');
+   if(si!==d[day-1])ordered=false;d[day-1]++;x+=B64[si];
+   const who=sol.res.get(task.key),v=who?index.get(who.key):4095;a+=B64[v>>6]+B64[v&63];
+   if(task.holiday)hol.add(day);
+  }
+  k[pool]=ordered?{s:slots,d,a}:{s:slots,d,x,a};
+ }
+ return {v:3,m:activeMonth,st:isLocked()?'a':'d',ref:scheduleReferenceCode(),c:localToday(),n:names,r:ranks,pr,k,h:[...hol].sort((p,q)=>p-q)};
+}
+let rosterLinkCache={fp:'',promise:null};
+function rosterLinkMessage(){
+ const fp=readonlyFingerprint();
+ if(rosterLinkCache.fp!==fp)rosterLinkCache={fp,promise:RosterMini.rosterLink(rosterLinkData()).then(url=>{
+  const [y,m]=activeMonth.split('-').map(Number);
+  return y+' 年 '+m+' 月勤務班表（'+(isLocked()?'已封存':'草稿，尚未封存')+'）：點開後輸入自己的姓名，就能看到自己的班並加入手機行事曆。\n'+url;})};
+ return rosterLinkCache.promise;
+}
+async function copyRosterLink(){
+ const say=m=>$('shareStatus').textContent=m;
+ if(!shareConsentOk())return;const error=readonlyEligibility();if(error){say('⚠ '+error);return;}
+ const text=rosterLinkMessage();
+ // iPhone Safari 要求在按下的當下就寫入剪貼簿；用 ClipboardItem 搭配還在產生中的內容
+ try{if(window.ClipboardItem&&navigator.clipboard?.write){await navigator.clipboard.write([new ClipboardItem({'text/plain':text.then(t=>new Blob([t],{type:'text/plain'}))})]);
+  say('✅ 已複製班表連結，貼到 LINE 群組即可。改班後請重新複製。');return;}}catch(_){}
+ try{if(await copyPlainText(await text,$('shareLinkText'),say))say('✅ 已複製班表連結，貼到 LINE 群組即可。改班後請重新複製。');}
+ catch(e){say('⚠ 無法產生班表連結：'+e.message);}
+}
+async function sendRosterLink(){
+ const say=m=>$('shareStatus').textContent=m;
+ if(!shareConsentOk())return;const error=readonlyEligibility();if(error){say('⚠ '+error);return;}
+ try{await navigator.share({text:await rosterLinkMessage()});say('✅ 已開啟分享。改班後請重新分享。');}
+ catch(e){say(e?.name==='AbortError'?'ℹ 已取消分享。':'ℹ 這個 App 不支援分享，請改用「複製班表連結」。');}
+}
 function shareConsentOk(){
  if($('shareConsent').checked)return true;
  $('shareStatus').textContent='⚠ 請先確認分享對象與管道符合單位規定。';$('shareConsent').focus();return false;
@@ -4999,7 +5163,7 @@ function downloadReadonly(){
  }catch(e){$('shareStatus').textContent='⚠ '+e.message;}
 }
 function readonlyPlainText(){
- const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.5','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
+ const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.6','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
  for(const pool of ['door','officer']){
   rows.push('',`【${pool==='door'?'大門衛哨':'安全士官'}】`);
   let prev='';for(const r of p[pool]){
@@ -6887,7 +7051,7 @@ $('roInlineOfficer').onclick=()=>{inlinePool='officer';renderReadonlyInline();};
 $('roInlineSearch').oninput=renderReadonlyInline;
 $('roInlineDate').onchange=()=>{const d=inlineReadonlyDate($('roInlineDate').value);if(d&&d>=$('roInlineDate').min&&d<=$('roInlineDate').max){inlineDay=d;renderReadonlyInline();}};
 $('roInlinePrev').onclick=()=>moveReadonlyInlineDay(-1);$('roInlineNext').onclick=()=>moveReadonlyInlineDay(1);
-$('sharePreview').onclick=previewReadonly;$('shareFile').onclick=shareOrDownload;$('shareText').onclick=copyReadonlyText;$('shareCopyClose').onclick=()=>{$('shareCopyBox').classList.add('hidden');};$('shareClose').onclick=closeReadonlyPreview;
+$('shareLink').onclick=copyRosterLink;$('shareLinkSend').onclick=sendRosterLink;$('sharePreview').onclick=previewReadonly;$('shareFile').onclick=shareOrDownload;$('shareText').onclick=copyReadonlyText;$('shareCopyClose').onclick=()=>{$('shareCopyBox').classList.add('hidden');};$('shareClose').onclick=closeReadonlyPreview;
  $('agendaPerson').addEventListener('change',renderPersonalAgenda);
  $('ruleSelfTest').onclick=runRuleSelfTests;$('integrityRun').onclick=showIndependentAudit;
  $('precisionAll').onclick=async()=>{
