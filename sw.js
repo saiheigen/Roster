@@ -1,23 +1,19 @@
-// 離線快取與「新版本要使用者按了才換」。
-// 只快取程式本身；名冊、休假、班表等資料一直都只存在瀏覽器的本機儲存，不經過這裡。
+// 離線快取。只快取程式本身；名冊、休假、班表等資料一直都只存在瀏覽器的本機儲存，不經過這裡。
 //
 // 運作方式：
-// - 平常一律用已存下的版本開啟（沒網路也能用，開啟速度也快）。
-// - 瀏覽器每次開啟時會檢查 sw.js 有沒有變。build.js 每次產生 index.html 都會更新下面的 VERSION，
-//   所以程式一改，sw.js 就跟著變；新版本在背景下載完成後「等待」，不會自己替換。
-// - 頁面看到有新版本在等待，就顯示「有新版本」提示；使用者按「更新」才切換並重新載入。
-const VERSION = 'c65feb1c2ba97ea8'; // build.js 自動填入，請勿手改
+// - 開啟網頁時有網路就抓最新版（4 秒內沒回應或沒網路，才用上次存下的版本），
+//   所以傳出去的班表連結、個人班表連結，任何人點開都是最新版。
+// - 每次發布前 GitHub 會先跑自動測試，沒通過不會發布。
+// - 已經開著的頁面不會被強制重新載入；新版本裝好後畫面下方顯示「網站已更新」，按「重新整理」才換。
+// - build.js 每次產生 index.html 都會更新下面的 VERSION，瀏覽器據此發現新版本。
+const VERSION = '6e2dc39800623d58'; // build.js 自動填入，請勿手改
 const CACHE = 'roster-' + VERSION;
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', event => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
-    await cache.addAll(ASSETS.map(url => new Request(url, { cache: 'reload' })));
-    // 從 v10.1 以前的「有網路就抓最新版」快取升級時，頁面本來就已是最新版，直接接手，不必再問一次。
-    const keys = await caches.keys();
-    if (keys.includes('roster-shell-v1')) await self.skipWaiting();
-  })());
+  event.waitUntil(caches.open(CACHE)
+    .then(cache => cache.addAll(ASSETS.map(url => new Request(url, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
@@ -28,21 +24,30 @@ self.addEventListener('activate', event => {
   );
 });
 
-self.addEventListener('message', event => {
-  if (event.data === 'activate-update') self.skipWaiting();
-});
+// 開啟頁面：網路優先，4 秒沒回應改用快取（網路回來後仍會更新快取）
+async function page(request) {
+  const cache = await caches.open(CACHE);
+  const network = fetch(request, { cache: 'no-cache' }).then(response => {
+    if (response.ok) cache.put('./index.html', response.clone());
+    return response;
+  });
+  const timeout = new Promise(resolve => setTimeout(resolve, 4000));
+  try {
+    const fast = await Promise.race([network, timeout]);
+    if (fast) return fast;
+  } catch (_) {}
+  return (await cache.match('./index.html')) || network;
+}
 
 self.addEventListener('fetch', event => {
-  const request = event.request;
-  if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
-  if (new URL(request.url).pathname.endsWith('/sw.js')) return;
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const hit = await cache.match(request, { ignoreSearch: true }) ||
-      (request.mode === 'navigate' ? await cache.match('./index.html') : undefined);
+  const request = event.request, url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== location.origin || url.pathname.endsWith('/sw.js')) return;
+  if (request.mode === 'navigate') { event.respondWith(page(request)); return; }
+  event.respondWith(caches.open(CACHE).then(async cache => {
+    const hit = await cache.match(request, { ignoreSearch: true });
     if (hit) return hit;
     const response = await fetch(request);
     if (response.ok) cache.put(request, response.clone());
     return response;
-  })());
+  }));
 });

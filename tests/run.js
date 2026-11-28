@@ -157,8 +157,8 @@ async function suiteConsistency() {
 async function suiteUpdate() {
   if (!fs.existsSync(require('path').join(require('path').dirname(target), 'sw.js'))) return;
   const { steps, errors } = await updateFlow(target);
-  for (const s of steps) record('新版本提示：' + s.name, s.ok, s.detail);
-  if (errors.length) record('新版本提示：頁面錯誤', false, errors.slice(0, 2).join('；'));
+  for (const s of steps) record('網站更新：' + s.name, s.ok, s.detail);
+  if (errors.length) record('網站更新：頁面錯誤', false, errors.slice(0, 2).join('；'));
 }
 
 // 給被排的人：個人班表連結與行事曆檔

@@ -12,17 +12,17 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="哨務工作台" name="apple-mobile-web-app-title"/>
-<title>哨務工作台 v10.6｜離線整合版</title>
+<title>哨務工作台 v10.7｜離線整合版</title>
 <style>
 <!--@include src/css/base.css-->
 <!--@include src/css/controls.css-->
 <!--@include src/css/touch.css-->
 <!--@include src/css/theme.css-->
 </style></head>
-<body><script><!--@include src/js/mini-pages.js--></script><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
+<body><script><!--@include src/js/inflate.js--></script><script><!--@include src/js/mini-pages.js--></script><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
 <h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
 <p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
-<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.6</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
+<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.7</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
 <div aria-live="polite" id="quickMessage" role="alert"></div>
 <div class="layout">
 <aside class="sidebar"><div class="box"><div class="label">工作區</div><nav aria-label="網站功能" class="stepnav"><button class="active" data-step="home"><span class="circle">◫</span> 總覽</button><button data-step="setup"><span class="circle">♙</span> 人員名冊</button><button data-step="records"><span class="circle">▦</span> 休假與勤務</button><button data-step="results"><span class="circle">≡</span> 每日班表</button></nav><div class="sidebar-divider"></div><div class="sidebar-note"><span class="dot"></span>本機離線運作<br/><small>排班結果須經單位審核</small></div></div></aside>
@@ -236,7 +236,7 @@
 <dialog id="backupPassDialog"><form method="dialog"><label for="backupPass">加密備份密碼</label><input id="backupPass" type="password" autocomplete="current-password"><button value="open">還原</button><button value="cancel">取消</button></form></dialog>
 <div class="row"><div class="field"><label for="snapshotPicker">本機自動快照（最多 2 份）</label><select id="snapshotPicker"><option value="">目前沒有自動快照</option></select></div><button id="restoreSnapshot" type="button">還原選取的快照</button></div>
 <p class="help" id="snapshotNotice">自動快照約每 6 小時保留一份較舊的進度，最多兩份。快照與主存檔在同一個 App 儲存空間，不能替代外部備份。</p>
-<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.6 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
+<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.7 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
 </main></div>
 
 <nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
@@ -272,7 +272,7 @@
 <!--@include src/js/app/13-boot.js-->})();
 
 </script>
-<div class="update-bar" id="updateBar" hidden role="status"><span id="updateMsg">有新版本可以使用。</span><button type="button" class="primary" id="updateNow">更新</button><button type="button" class="ghost" id="updateLater">稍後</button></div>
+<div class="update-bar" id="updateBar" hidden role="status"><span id="updateMsg">網站已更新，重新整理即可使用新版。</span><button type="button" class="primary" id="updateNow">重新整理</button><button type="button" class="ghost" id="updateLater">稍後</button></div>
 <script><!--@include src/js/pwa.js--></script>
 </body>
 </html>

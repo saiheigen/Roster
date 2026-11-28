@@ -27,6 +27,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 網站更新測試要用 git 歷史中的舊版
       - uses: actions/setup-node@v4
         with:
           node-version: 22

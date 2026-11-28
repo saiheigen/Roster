@@ -3,21 +3,17 @@
 (()=>{
  if(!/^https?:$/.test(location.protocol))return;
  if('serviceWorker' in navigator)window.addEventListener('load',async()=>{
+  // 新版本裝好時（controllerchange）只顯示提示，不自動重新載入；第一次安裝（原本沒有 controller）不提示
+  const hadController=!!navigator.serviceWorker.controller;
   let reg;try{reg=await navigator.serviceWorker.register('sw.js');}catch(_){return;}
   const bar=document.getElementById('updateBar'),btn=document.getElementById('updateNow'),later=document.getElementById('updateLater'),msg=document.getElementById('updateMsg');
-  // 第一次安裝時沒有舊版本，不需要提示；只有「已有版本在用、新版本在等待」才提示
-  const offer=()=>{if(reg.waiting&&navigator.serviceWorker.controller&&bar){bar.hidden=false;msg.textContent='有新版本可以使用。';btn.disabled=false;}};
-  offer();
-  reg.addEventListener('updatefound',()=>{const w=reg.installing;w&&w.addEventListener('statechange',()=>{if(w.state==='installed')offer();});});
-  let reloading=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)return;reloading=true;location.reload();});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadController&&bar){bar.hidden=false;msg.textContent='網站已更新，重新整理即可使用新版。';btn.disabled=false;}});
   btn&&btn.addEventListener('click',()=>{
    const busy=window.rosterUpdateBlocker?window.rosterUpdateBlocker():'';
-   if(busy){msg.textContent=busy+'，完成後再按「更新」。';return;}
-   if(!reg.waiting){bar.hidden=true;return;}
-   btn.disabled=true;msg.textContent='正在更新…';
+   if(busy){msg.textContent=busy+'，完成後再按「重新整理」。';return;}
+   btn.disabled=true;msg.textContent='正在重新整理…';
    try{window.rosterFlushSave&&window.rosterFlushSave();}catch(_){}
-   reg.waiting.postMessage('activate-update');
+   setTimeout(()=>location.reload(),150);
   });
   later&&later.addEventListener('click',()=>{bar.hidden=true;});
   // 開著不關的分頁也會發現新版本（每 6 小時、以及從背景切回來時檢查）

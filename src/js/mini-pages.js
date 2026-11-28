@@ -114,20 +114,23 @@
  //   {v:3,m:'YYYY-MM',st,ref,c,n:[姓名…],r:[級職清單],pr:[每人級職序…],h:[假日的日期…],
  //    k:{door:{s:[[開始時,時數,班序]…],d:[每天幾班…],x:'每班的時段序（每字一班，若每天依序排滿則省略）',a:'每班的人員序（每兩字一班，__ 為缺班）'},officer:{…}}}
  // 讀進來後轉成 {p:[[姓名,級職]…],k:{door:{s,t:[日,時段序,人員序(-1 缺班),…]}}} 給畫面使用
+ // 壓縮用瀏覽器內建的 CompressionStream（排班人的裝置）；解壓縮用自帶的 RosterInflate，舊手機也能開
+ async function deflateRaw(bytes){
+  const run=format=>new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream(format))).arrayBuffer().then(b=>new Uint8Array(b));
+  try{return await run('deflate-raw');}catch(_){}
+  const z=await run('deflate');return z.subarray(2,z.length-4); // zlib 格式去掉 2 位元組標頭與 4 位元組檢查碼即為 raw deflate
+ }
  async function packRoster(data){
   const bytes=new TextEncoder().encode(JSON.stringify(data));
-  if(typeof CompressionStream!=='function')return 'j'+encode(data);
-  const out=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+  let out;try{if(typeof CompressionStream!=='function')throw 0;out=await deflateRaw(bytes);}catch(_){return 'j'+encode(data);}
   let bin='';for(let i=0;i<out.length;i+=0x8000)bin+=String.fromCharCode.apply(null,out.subarray(i,i+0x8000));
   return 'z'+btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
  }
  async function unpackRoster(text){
   if(text[0]==='j')return decode(text.slice(1));
   if(text[0]!=='z')throw Error('格式不符');
-  if(typeof DecompressionStream!=='function'){const e=Error('old');e.old=true;throw e;}
   const b=text.slice(1).replace(/-/g,'+').replace(/_/g,'/'),bin=atob(b+'==='.slice((b.length+3)%4));
-  const raw=await new Response(new Blob([Uint8Array.from(bin,c=>c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
-  return JSON.parse(new TextDecoder().decode(raw));
+  return JSON.parse(new TextDecoder().decode(RosterInflate.inflate(Uint8Array.from(bin,c=>c.charCodeAt(0)))));
  }
  const B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
  async function rosterLink(data){return baseUrl()+'#roster='+await packRoster(data);}
@@ -214,7 +217,7 @@
    if(h.startsWith('#my=')){renderMy(decode(h.slice(4)));return;}
    if(h.startsWith('#roster=')){open('勤務班表');renderRoster(expandRoster(await unpackRoster(h.slice(8))));return;}
   }catch(e){const root=open('連結無法開啟');
-   header(root,'哨務工作台','連結無法開啟',e&&e.old?'這支手機的瀏覽器版本太舊，打不開壓縮的班表連結（iPhone 需 iOS 16.4 以上）。請更新系統，或向排班人索取個人班表連結。':'這個連結不完整或已損壞，請向排班人重新索取。');return;}
+   header(root,'哨務工作台','連結無法開啟','這個連結不完整或已損壞（可能複製時被截斷），請向排班人重新索取。');return;}
   close();
  }
  window.RosterMini={personalLink,rosterLink,calendarFile,decode,unpackRoster,expandRoster,B64};
