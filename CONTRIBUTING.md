@@ -43,7 +43,7 @@ node build.js --check  # 只檢查 index.html、sw.js 是否和原始碼一致
 
 ```bash
 cd tests && npm install && npx playwright install chromium
-node run.js ../index.html --quick --only selftest,demo,consistency,update,stress,settings,burden   # 約 10 分鐘，和 GitHub 上的自動測試相同
+node run.js ../index.html --quick --only selftest,demo,consistency,update,people,stress,settings,burden   # 約 10 分鐘，和 GitHub 上的自動測試相同
 node run.js ../index.html --expect-exact-variants                                          # 完整測試，約 1 小時
 node run.js ../index.html --baseline 舊版.html --only equivalence                           # 改版前後規則判定是否完全相同
 ```

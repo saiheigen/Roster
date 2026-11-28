@@ -11,12 +11,19 @@ function initResultNavigation(){
  $('agendaSearch').addEventListener('input',renderPersonalAgenda);
  // 依人員檢視：可直接複製／分享此人班表，或跳到「人員查詢」修改他的休假與勤務紀錄
  {const say=m=>$('agendaShareStatus').textContent=m;
-  const text=()=>personShareHeader().replace('個人班表','班表')+'\n'+personShiftText(agendaCurrent.pool,agendaCurrent.p,'block')+'\n'+personShareFooter;
+  const text=()=>personShareHeader().replace('個人班表','班表')+'\n'+personShiftText(agendaCurrent.pool,agendaCurrent.p,'block',true)+'\n'+personShareFooter;
   const ready=()=>{if(!agendaCurrent)return false;const reason=readonlyEligibility();if(reason){say('⚠ '+reason);return false;}if(!$('agendaConsent').checked){say('⚠ 請先勾選上方的分享確認。');return false;}return true;};
   $('agendaConsent').onchange=e=>{$('shareConsent').checked=e.target.checked;$('shareConsent').dispatchEvent(new Event('change',{bubbles:true}));};
   $('agendaCopy').onclick=()=>{if(ready())copyPlainText(text(),$('agendaShareText'),say);};
   $('agendaSend').hidden=!navigator.share;
+  $('agendaLink').onclick=()=>{if(!ready())return;if(!personShifts(agendaCurrent.pool,agendaCurrent.p).length){say('ℹ 此人本月沒有班。');return;}
+   const p=agendaCurrent.p;copyPlainText((p.name||p.id)+' '+last.m.month.m+' 月班表（點開可加入手機行事曆）：'+personalLinkFor(agendaCurrent.pool,p),$('agendaShareText'),say);};
   $('agendaSend').onclick=async()=>{if(!ready())return;try{await navigator.share({title:(agendaCurrent.p.name||agendaCurrent.p.id)+' 班表',text:text()});say('✅ 已開啟分享。');}catch(e){if(e&&e.name!=='AbortError')say('ℹ 這個 App 不支援系統分享，請改用「複製此人班表」。');}};
+  {const say=m=>$('leaveLinkStatus').textContent=m;
+   $('leaveLinkCopy').onclick=()=>copyPlainText(leaveLinkMessage(),$('leaveLinkText'),say);
+   $('leaveLinkShare').hidden=!navigator.share;
+   $('leaveLinkShare').onclick=async()=>{try{await navigator.share({text:leaveLinkMessage()});say('✅ 已開啟分享。');}catch(e){if(e&&e.name!=='AbortError')say('ℹ 這個 App 不支援分享，請改用「複製填報連結」。');}};
+   $('leaveInboxCheck').onclick=leaveInboxCheck;$('leaveInboxApply').onclick=leaveInboxApply;}
   $('agendaRecords').onclick=()=>{if(!agendaCurrent)return;lookupId=agendaCurrent.p.id;showStep('records');renderLookup();setTimeout(()=>$('personLookup').scrollIntoView({block:'start',behavior:'smooth'}),80);};
  }
 

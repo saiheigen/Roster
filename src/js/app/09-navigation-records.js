@@ -200,6 +200,52 @@ function submitRecord(e){e.preventDefault();const def=recordDefs[currentCat];con
  const saved=saveAutoNow();
  $('recordStatus').textContent=saved?(vault?'已登記 '+label+'。加密存檔狀態見頁首。':'已儲存 '+label+'。'):'⚠ '+label+' 已登記在本頁，但本機存檔失敗。請先備份再關閉。';
 }
+// 收集休假：產生填報連結；把收到的「休假填報」文字比對名冊後加入休假紀錄（同人同日期的紀錄不重複加入）
+let leaveInboxPlan=null;
+function leaveInboxPeople(){return [...rosterPersons('door').map(p=>({...p,pool:'door'})),...rosterPersons('officer').map(p=>({...p,pool:'officer'}))];}
+function leaveInboxCheck(){
+ const people=leaveInboxPeople(),items=RosterMini.parseLeave($('leaveInbox').value),box=$('leaveInboxResult');
+ const byId=new Map(people.map(p=>[p.id,p])),byName=new Map();for(const p of people)byName.set(p.name,[...(byName.get(p.name)||[]),p]);
+ const keyOf=(token,a,b)=>{const t=String(token||'').trim(),p=byId.get(t)||((byName.get(t)||[]).length===1?byName.get(t)[0]:null);
+  const d=x=>{try{const v=parseDate(x,monthVal());return v===null?'':dateText(v);}catch(_){return '';}};return p?p.id+'|'+d(a)+'|'+d(b||a):'';};
+ const existing=new Set(lines('leave').filter(r=>!r.error&&!skipHeader(r)).map(r=>keyOf(r.fields[0],r.fields[1],r.fields[2])).filter(Boolean));
+ const rows=[],add=[],replied=new Set(),seen=new Set();
+ for(const it of items){
+  let p=null,note='';
+  if(it.id&&byId.has(it.id))p=byId.get(it.id);
+  else{const same=byName.get(it.name)||[];if(same.length===1)p=same[0];else note=same.length?'名冊有 '+same.length+' 位「'+it.name+'」，請對方填人員編號後重傳':'名冊找不到「'+it.name+(it.id?'（'+it.id+'）':'')+'」';}
+  if(p&&it.id&&it.id!==p.id)note='編號 '+it.id+' 不在名冊，改用姓名對到 '+p.id;
+  if(it.month!==activeMonth)note=(note?note+'；':'')+'填的是 '+it.month+'，目前排班月份是 '+activeMonth;
+  if(it.error){rows.push({it,p,status:'error',text:it.error});continue;}
+  if(!p){rows.push({it,p,status:'error',text:note});continue;}
+  replied.add(p.id);
+  if(it.none){rows.push({it,p,status:'none',text:'無休假'+(note?'（'+note+'）':'')});continue;}
+  const parts=[];
+  for(const [a,b] of it.ranges){
+   const key=p.id+'|'+a.replace(/\//g,'-')+'|'+b.replace(/\//g,'-');
+   if(existing.has(key)||seen.has(key)){parts.push(a.slice(5)+(a===b?'':'～'+b.slice(5))+' 已登記');continue;}
+   seen.add(key);add.push(p.id+'\t'+a+'\t'+b);parts.push(a.slice(5)+(a===b?'':'～'+b.slice(5)));
+  }
+  rows.push({it,p,status:'ok',text:parts.join('、')+(note?'（'+note+'）':'')});
+ }
+ const missing=people.filter(p=>!replied.has(p.id)&&!isInactiveAtMonthStart(p.pool,p.id));
+ leaveInboxPlan=add;
+ $('leaveInboxApply').disabled=!add.length;$('leaveInboxApply').textContent=add.length?'加入 '+add.length+' 筆休假':'加入休假';
+ const icon={ok:'✅',none:'➖',error:'⚠'};
+ box.innerHTML=items.length?`<p class="help">讀到 ${items.length} 則填報：可加入 ${add.length} 筆休假；已回覆 ${replied.size} 人，尚未回覆 ${missing.length} 人。</p>`+
+  `<ul class="leave-inbox-list">${rows.map(r=>`<li class="is-${r.status}"><b>${icon[r.status]} ${esc(r.p?r.p.rank+' '+r.p.name+'（'+r.p.id+'）':r.it.name)}</b><span>${esc(r.text)}</span></li>`).join('')}</ul>`+
+  (missing.length?`<details class="leave-missing"><summary>尚未回覆 ${missing.length} 人</summary><p>${esc(missing.map(p=>p.name).join('、'))}</p></details>`:'')
+  :'<p class="help">沒有讀到「休假填報」開頭的文字。請確認貼上的是對方從填報頁傳回的內容。</p>';
+}
+function leaveInboxApply(){
+ if(!leaveInboxPlan?.length)return;
+ const el=$('leave'),arr=el.value?el.value.split(/\r?\n/):[];while(arr.length&&arr[arr.length-1].trim()==='')arr.pop();
+ const n=leaveInboxPlan.length;arr.push(...leaveInboxPlan);el.value=arr.join('\n');
+ leaveInboxPlan=null;refreshUX();invalidateResult();renderRecords();
+ const saved=saveAutoNow();leaveInboxCheck();
+ $('leaveInboxResult').insertAdjacentHTML('afterbegin',`<p class="message">${saved?'已加入 '+n+' 筆休假並儲存。':'⚠ 已加入 '+n+' 筆休假，但本機存檔失敗，請先備份。'}可在下方「已登記紀錄」或「人員查詢」核對。</p>`);
+}
+function leaveLinkMessage(){const [y,m]=activeMonth.split('-').map(Number);return '請填 '+y+' 年 '+m+' 月的休假（點連結、選日期，再把產生的文字傳回給我；沒有休假也請傳「無」）：\n'+RosterMini.leaveLink(activeMonth);}
 function invalidateResult(){stopOffline('');discardMinimal();closeReadonlyPreview();$('shareTextArea').value='';$('shareCopyBox').classList.add('hidden');if(last){cacheCurrentSchedule();last=null;loadedSig='';$('results').classList.add('hidden');$('noResults').classList.remove('hidden');}refreshDashboard();}
 function reviewInputs(){refreshUX();$('reviewDoor').textContent=rosterPersons('door').length+' 人';$('reviewOfficer').textContent=rosterPersons('officer').length+' 人';$('reviewEvents').textContent=recordIds.reduce((s,id)=>s+countRows(id),0)+' 筆';
  try{const m=build();

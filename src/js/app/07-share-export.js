@@ -230,7 +230,7 @@ function downloadReadonly(){
  }catch(e){$('shareStatus').textContent='⚠ '+e.message;}
 }
 function readonlyPlainText(){
- const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.2','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
+ const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.3','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
  for(const pool of ['door','officer']){
   rows.push('',`【${pool==='door'?'大門衛哨':'安全士官'}】`);
   let prev='';for(const r of p[pool]){
@@ -243,23 +243,30 @@ function readonlyPlainText(){
 // ---- 個人班表 ----
 function shiftClock(t){const h=x=>String(x).padStart(2,'0');return h(t.start)+'–'+h(t.end);}
 function personShifts(pool,staff){const sol=last.solutions[pool];return sol.tasks.filter(t=>sol.res.get(t.key)?.key===staff.key).sort((a,b)=>a.day-b.day||a.start-b.start);}
-function personShiftText(pool,staff,format='block'){
+// 個人班表連結：資料（姓名與班次）放在連結 # 後面，打開後可一鍵加入手機行事曆（見 src/js/mini-pages.js）
+function personalLinkFor(pool,staff){
+ const own=personShifts(pool,staff);
+ return RosterMini.personalLink({m:activeMonth,n:staff.name||staff.id,r:staff.rank||'',k:pool,st:isLocked()?'a':'d',ref:scheduleReferenceCode(),c:localToday(),
+  s:own.map(t=>[Number(dateText(t.day).slice(8,10)),t.start,t.dur,t.num,t.holiday?1:0])});
+}
+function personShiftText(pool,staff,format='block',links=false){
  const week='日一二三四五六',mo=last.m.month,label=pool==='door'?'大門衛哨':'安全士官';
  const item=t=>dateText(t.day).slice(5).replace('-','/')+'（'+week[new Date(dateText(t.day)+'T00:00:00').getDay()]+'）'+shiftClock(t)+(t.holiday?'（假日）':'');
  const mine=personShifts(pool,staff),name=staff.name||staff.id;
- if(format==='line')return name+'：'+(mine.length?mine.map(item).join('、')+'（共 '+mine.length+' 班）':'本月無班');
- return name+'（'+staff.id+'）'+mo.m+' 月'+label+'，共 '+mine.length+' 班'+(mine.length?'：\n'+mine.map(item).join('\n'):'。');
+ const link=links&&mine.length?personalLinkFor(pool,staff):'';
+ if(format==='line')return name+'：'+(mine.length?mine.map(item).join('、')+'（共 '+mine.length+' 班）':'本月無班')+(link?' 📅 '+link:'');
+ return name+'（'+staff.id+'）'+mo.m+' 月'+label+'，共 '+mine.length+' 班'+(mine.length?'：\n'+mine.map(item).join('\n'):'。')+(link?'\n📅 加入手機行事曆：'+link:'');
 }
 function personShareHeader(){
  const mo=last.m.month,locked=!!appStore.months?.[activeMonth]?.locked;
  return mo.y+' 年 '+mo.m+' 月 個人班表｜'+(locked?'已封存':'草稿（未封存）');
 }
 const personShareFooter='※ 依產生當下的班表；之後若有異動，以最新公告為準。';
-function allPersonShiftText(scope,format){
+function allPersonShiftText(scope,format,links=false){
  const rows=[personShareHeader()];
  for(const pool of scope==='all'?['door','officer']:[scope]){
   rows.push('','【'+(pool==='door'?'大門衛哨':'安全士官')+'】');
-  for(const staff of last.m.staff[pool]){if(format==='block')rows.push('');rows.push(personShiftText(pool,staff,format));}
+  for(const staff of last.m.staff[pool]){if(format==='block')rows.push('');rows.push(personShiftText(pool,staff,format,links));}
  }
  rows.push('',personShareFooter);return rows.join('\n');
 }
@@ -276,13 +283,13 @@ function personShareBlocked(say){
 }
 async function copyPersonShare(){
  const say=m=>$('personShareStatus').textContent=m;if(personShareBlocked(say))return;
- const text=allPersonShiftText($('personShareScope').value,$('personShareFormat').value);
+ const text=allPersonShiftText($('personShareScope').value,$('personShareFormat').value,$('personShareLinks').checked);
  $('personShareText').value=text;$('personShareText').classList.remove('hidden');
  await copyPlainText(text,$('personShareText'),say);
 }
 async function sendPersonShare(){
  const say=m=>$('personShareStatus').textContent=m;if(personShareBlocked(say))return;
- const text=allPersonShiftText($('personShareScope').value,$('personShareFormat').value);
+ const text=allPersonShiftText($('personShareScope').value,$('personShareFormat').value,$('personShareLinks').checked);
  try{await navigator.share({title:personShareHeader(),text});say('✅ 已開啟分享。');}catch(e){if(e&&e.name!=='AbortError')say('ℹ 這個 App 不支援系統分享，請改用「複製個人班表」。');}
 }
 async function copyReadonlyText(){

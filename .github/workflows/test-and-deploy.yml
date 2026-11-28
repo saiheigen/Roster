@@ -41,7 +41,7 @@ jobs:
           if [ "${{ inputs.full }}" = "true" ]; then
             node run.js ../index.html --expect-exact-variants --report report.json
           else
-            node run.js ../index.html --quick --only selftest,demo,consistency,update,stress,settings,burden --report report.json
+            node run.js ../index.html --quick --only selftest,demo,consistency,update,people,stress,settings,burden --report report.json
           fi
       - name: 保存測試報告
         if: always()

@@ -4,12 +4,13 @@
 // 用法：node run.js <工作台.html> [--baseline 舊版.html] [--quick]
 //        [--leave 休假.tsv --door 56 --officer 56 [--golden 標準答案.json | --write-golden 標準答案.json]]
 //        [--expect-exact-variants] [--report report.json]
-//        [--only selftest,demo,stress,variants,consistency,update,settings,burden,equivalence,real]
+//        [--only selftest,demo,stress,variants,consistency,update,people,settings,burden,equivalence,real]
 const fs = require('fs');
 const K = require('./lib/page');
 const { verifySchedule, holidayImbalance } = require('./lib/verify');
 const Consistency = require('./lib/consistency');
 const { updateFlow } = require('./lib/update');
+const { peopleFeatures } = require('./lib/people');
 
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : null; };
@@ -158,6 +159,11 @@ async function suiteUpdate() {
   const { steps, errors } = await updateFlow(target);
   for (const s of steps) record('新版本提示：' + s.name, s.ok, s.detail);
   if (errors.length) record('新版本提示：頁面錯誤', false, errors.slice(0, 2).join('；'));
+}
+
+// 給被排的人：個人班表連結與行事曆檔、休假填報與「收集休假」匯入
+async function suitePeople() {
+  for (const s of await peopleFeatures(K, target)) record('給被排的人：' + s.name, s.ok, s.detail);
 }
 
 // v8.2 起：在「排班規則與每人上限」設定頁改數值，排班與驗算都必須依新設定，重新開啟後設定仍在。
@@ -329,6 +335,7 @@ async function suiteReal() {
     if (want('variants')) await suiteVariants();
     if (want('consistency')) await suiteConsistency();
     if (want('update')) await suiteUpdate();
+    if (want('people')) await suitePeople();
     if (want('settings')) await suiteSettingsPage();
     if (want('burden')) await suiteBurden();
     if (opt('--baseline') && want('equivalence')) await suiteEquivalence(opt('--baseline'));
