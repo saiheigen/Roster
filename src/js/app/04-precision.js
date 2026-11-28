@@ -61,6 +61,40 @@ async function solveOfflinePool(job,url,bytes,frame,onProgress=null){
  }finally{clearTimeout(timer);worker?.terminate();job.worker=null;job.reject=null;}
 }
 
+// 精算（不含一鍵排班）時同時開幾個背景引擎，各用不同的隨機種子與搜尋力度（見 variantOptions）。
+// 任何一個把全部目標證明完就採用它並停止其他；都沒證明完就等全部結束，取證明最多的結果、最高的點數下限。
+// 每個引擎回報的班表都經過同一個 onProgress 檢查與巡檢，只會採用更好的班表。
+function precisionWorkerCount(){
+ const cores=navigator.hardwareConcurrency||2,mem=navigator.deviceMemory||8,touch=matchMedia?.('(pointer:coarse)').matches;
+ // 大門、安官同時精算，各分一半核心；手機或記憶體小的裝置最多 2 個，避免瀏覽器因記憶體不足關掉分頁
+ return Math.max(1,Math.min(touch||mem<=4?2:3,Math.floor(cores/2)));
+}
+async function solveOfflinePortfolio(job,url,bytes,src,onProgress,count){
+ if(count<=1)return solveOfflinePool(job,url,bytes,src,onProgress);
+ const subs=Array.from({length:count},()=>({worker:null,reject:null}));
+ const level=r=>r?(r.pointsUnproven?0:2)+(r.holidayUnproven?0:1):-1;
+ return await new Promise((resolve,reject)=>{
+  let settled=false,pending=count;const results=[],errors=[];
+  const stopAll=()=>subs.forEach(sub=>{sub.reject?.(Error('已由其他引擎完成'));sub.worker?.terminate();});
+  job.worker={terminate:stopAll};
+  job.reject=e=>{if(settled)return;settled=true;stopAll();reject(e);};
+  const done=()=>{
+   if(settled||pending)return;settled=true;
+   if(!results.length){reject(errors[0]||Error('背景求解器執行失敗'));return;}
+   const best=results.reduce((a,b)=>level(b)>level(a)?b:a);
+   const bounds=results.map(r=>r.pointsBound).filter(Number.isFinite);
+   resolve({...best,pointsBound:bounds.length?Math.max(...bounds):best.pointsBound,safetyHit:results.some(r=>r.safetyHit)});
+  };
+  subs.forEach((sub,k)=>{
+   solveOfflinePool(sub,url,bytes,{...src,variant:k},p=>onProgress(p,k)).then(r=>{
+    if(settled)return;
+    if(r&&!r.workLimited&&level(r)===3){settled=true;stopAll();resolve({...r,safetyHit:!!r.safetyHit});return;}
+    results.push(r);pending--;done();
+   },e=>{if(settled)return;errors.push(e);pending--;done();});
+  });
+ });
+}
+
 // 假日班公平精修：在精算引擎已證明所有目標最優之後，只做「不改變任何已證明目標數值」的互換，
 // 讓假日班依各人總班數更平均。排序在所有既有目標之後，因此不會犧牲缺班、班數公平、連站或艱苦哨。
 function holidayImbalance(tasks,a){
@@ -397,10 +431,23 @@ async function runPrecision(pool,draft=null,group=null){
   const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
   if(hash!=='69a85477acde13876c8fe83357959724e795abdfd144af0531f920d41b5f813e')throw Error('離線精算引擎校驗失敗');
   check();url=URL.createObjectURL(new Blob([$('zeroModule').textContent,'\n',$('doorObjectives').textContent,'\n',$('precisionWorker').textContent],{type:'text/javascript'}));
+  const workers=draft?1:precisionWorkerCount();
   const onProgress=progress=>{
    check();
    const a=progress.assignments,q=objectives(src,a);
-   if(q.some((n,i)=>!Number.isFinite(n)||n!==progress.scores[i])||progress.proven<certified||progress.proven>labels.length||
+   if(workers>1){
+    if(q.some((n,i)=>!Number.isFinite(n)||n!==progress.scores[i]))throw Error('目標數值不符');
+    const cmp=compareDoorObjectives(q,latest);
+    // 多個引擎同時跑：落後的回報直接略過；別的引擎多證明了幾項、但班表沒有比較好時，只更新「已證明」的項數
+    if(cmp>=0&&progress.proven<=certified)return;
+    if(cmp>0){
+     if(q.slice(0,progress.proven).some((n,i)=>n!==latest[i]))throw Error('不同引擎的已證明數值不一致');
+     certified=progress.proven;snapshot.proven=certified;cells.forEach((set,i)=>set(latest[i],i<certified));
+     report.textContent=month+' '+label+'｜'+progress.phase+'（'+certified+'/'+labels.length+'）'+saveWarning;job.summary=report.textContent;
+     paint(certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');return;
+    }
+   }
+   if(q.some((n,i)=>!Number.isFinite(n)||n!==progress.scores[i])||(workers===1&&progress.proven<certified)||progress.proven>labels.length||
     q.slice(0,certified).some((n,i)=>n!==latest[i]))throw Error('目標數值或證明順序不符');
    const cmp=compareDoorObjectives(q,latest);
    if(cmp>0)throw Error('候選方案優先順序不符');
@@ -418,13 +465,13 @@ async function runPrecision(pool,draft=null,group=null){
     renderChangeHistory();
     if(!saveAutoNow())saveWarning='。本機自動存檔失敗，請使用「備份全部」';}
    }
-   latest=q;certified=progress.proven;snapshot.proven=certified;
+   latest=q;certified=Math.max(certified,progress.proven);snapshot.proven=certified;
    cells.forEach((set,i)=>set(q[i],i<certified));
    report.textContent=month+' '+label+'｜'+progress.phase+'（'+certified+'/'+labels.length+'）'+saveWarning;
    job.summary=report.textContent;
    paint(certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');
   };
-  const solved=await solveOfflinePool(job,url,bytes,src,onProgress);check();
+  const solved=await solveOfflinePortfolio(job,url,bytes,src,onProgress,workers);check();
   if(solved?.safetyHit)safetyHit=true;
   if(!draft&&Number.isFinite(solved?.pointsBound))latestBound=solved.pointsBound;
   // 記住這次算出的點數下限（只增不減）；下次對同一份資料按精算，班表一達到下限就算證明完成

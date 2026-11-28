@@ -12,7 +12,7 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="yes" name="mobile-web-app-capable"/>
 <meta content="哨務工作台" name="apple-mobile-web-app-title"/>
-<title>哨務工作台 v10.4｜離線整合版</title>
+<title>哨務工作台 v10.5｜離線整合版</title>
 <style>
 :root{font-synthesis:none}
 *{box-sizing:border-box}
@@ -996,7 +996,7 @@ html.mini-mode body{background:var(--duty-board)}
 </script><section id="runProgress" role="dialog" aria-modal="true" aria-labelledby="runTitle" hidden><div class="run-card">
 <h2 id="runTitle" tabindex="-1">正在排班</h2><progress id="runBar" max="100" value="0" aria-label="排班階段進度"></progress>
 <p id="runPhase" role="status" aria-live="polite"></p><button id="runInterrupt" type="button">取消排班</button></div></section><section id="unlockBox" class="card" hidden><h2>解鎖哨務工作台</h2><form id="unlockForm"><label for="unlockPass">本機存檔密碼</label><input id="unlockPass" type="password" autocomplete="current-password"><button id="unlockVault" type="submit">解鎖</button></form><p id="unlockHint" role="status"></p><button id="eraseLocked" type="button">清除本機資料</button></section>
-<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.4</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
+<header class="top"><div class="topin"><div class="brand"><div aria-hidden="true" class="brandmark">✳</div><div><h1>哨務工作台 v10.5</h1><p aria-live="polite" class="autosave-indicator" id="autoSaveStatus">正在確認本機儲存…</p><button class="ghost hidden" id="recoverAutosave" type="button">確認用已還原備份恢復自動儲存</button></div></div><div class="topright"><div class="top-month"><label for="monthTop">排班月份</label><span class="picker-bound"><input aria-label="目前排班月份" id="monthTop" type="month" value="2026-12"/></span></div></div></div></header>
 <div aria-live="polite" id="quickMessage" role="alert"></div>
 <div class="layout">
 <aside class="sidebar"><div class="box"><div class="label">工作區</div><nav aria-label="網站功能" class="stepnav"><button class="active" data-step="home"><span class="circle">◫</span> 總覽</button><button data-step="setup"><span class="circle">♙</span> 人員名冊</button><button data-step="records"><span class="circle">▦</span> 休假與勤務</button><button data-step="results"><span class="circle">≡</span> 每日班表</button></nav><div class="sidebar-divider"></div><div class="sidebar-note"><span class="dot"></span>本機離線運作<br/><small>排班結果須經單位審核</small></div></div></aside>
@@ -1147,7 +1147,7 @@ html.mini-mode body{background:var(--duty-board)}
 <button class="primary" type="button" id="precisionAll" aria-describedby="precisionHint">精算並證明最優（大門＋安官同時進行）</button>
 <button class="ghost" type="button" id="smartRepair">補滿缺班（少量調整）</button>
 <button class="ghost" type="button" id="resultsRun">↻ 保留固定班次重新排班</button>
-</div><p class="help" id="precisionHint">精算可隨時停止，已通過巡檢的改善會保留。勤務負擔點數的證明第一次最多 120 秒，未證明完會記下「最優值至少多少」；同一份資料再按一次會接著用這個下限，時間加倍（最多 480 秒）。假日班公平最多 60 秒。</p>
+</div><p class="help" id="precisionHint">精算可隨時停止，已通過巡檢的改善會保留。勤務負擔點數的證明第一次最多 120 秒，未證明完會記下「最優值至少多少」；同一份資料再按一次會接著用這個下限，時間加倍（最多 480 秒）。假日班公平最多 60 秒。多核心的電腦與手機會同時開 2～3 個背景引擎一起算，誰先證明完就用誰的結果。</p>
 <p class="help mobile-hint" id="precisionMobileHint" hidden>📱 手機上精算比電腦慢好幾倍，鎖定螢幕或切到其他 App 時計算會暫停。一鍵排班的結果和電腦相同；要拚「證明最優」，建議在電腦用 Chrome／Edge 開同一份備份來精算。</p>
 <script>try{if(matchMedia('(pointer:coarse)').matches)document.getElementById('precisionMobileHint').hidden=false;}catch(_){}</script>
 <section id="precisionPanel" class="deep-card" hidden>
@@ -1209,7 +1209,7 @@ html.mini-mode body{background:var(--duty-board)}
 <dialog id="backupPassDialog"><form method="dialog"><label for="backupPass">加密備份密碼</label><input id="backupPass" type="password" autocomplete="current-password"><button value="open">還原</button><button value="cancel">取消</button></form></dialog>
 <div class="row"><div class="field"><label for="snapshotPicker">本機自動快照（最多 2 份）</label><select id="snapshotPicker"><option value="">目前沒有自動快照</option></select></div><button id="restoreSnapshot" type="button">還原選取的快照</button></div>
 <p class="help" id="snapshotNotice">自動快照約每 6 小時保留一份較舊的進度，最多兩份。快照與主存檔在同一個 App 儲存空間，不能替代外部備份。</p>
-<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.4 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
+<div class="actions"><button id="save" type="button">備份全部資料與班表</button><button id="restoreButton" type="button">還原備份資料</button><input accept=".json,application/json" id="restore" type="file"/><input accept=".csv,.tsv,.txt,text/csv,text/plain" id="importFile" type="file"/></div><details><summary>關於哨務工作台 v10.5 · 離線整合版</summary><p class="help">已實作禁排：休假、值星、受訓、督伙、夜查、車勤、伙房、免哨、大門最多連站兩天、安官最多連站兩天（跨日休息六小時）、同時段、連續週日留守等。規則已由單位核對，符合現行規定（2026 年 11 月）。前月已封存時可帶入上一月待減班數，但仍須人工核對。若未提供前月已排班次，無法完整核實月初跨月衝突。發布前仍請檢視班表。</p><div class="actions"><button id="ruleSelfTest" type="button">執行規則自我測試</button></div><div id="ruleSelfTestResult" class="quality-detail" role="status"></div></details></details></div></section>
 </main></div>
 
 <nav aria-label="網站功能" class="mobile-steps"><button class="active" data-step="home"><span>◫</span>總覽</button><button data-step="setup"><span>♙</span>人員</button><button data-step="records"><span>▦</span>勤務</button><button data-step="results"><span>≡</span>班表</button></nav>
@@ -2096,6 +2096,12 @@ function searchDoorTimes(src,initial,floor,onBest){
 }
 
 // Publish improving witnesses while the unrestricted search proves its bounds.
+// 精算時同時跑的幾個背景引擎：第 0 個用預設設定，其餘換隨機種子與啟發式搜尋力度，走不同的搜尋路徑
+// （一鍵排班只用一個引擎、variant 一律為 0，才能保證同資料同結果）
+function variantOptions(src){
+ const v=src.variant||0;if(!v)return {};
+ return {random_seed:1000003*v%2147483647,mip_heuristic_effort:[0.05,0.3,0.15,0.5][v%4]};
+}
 // 最近一次求解回報的下限（「最優值不可能低於此」）；時間到沒證明完時，頁面會記住它，下次精算接著用
 var __lastDual=-Infinity;
 function solveDoorModel(highs,definition,seed,options,onWitness){
@@ -2440,7 +2446,7 @@ function solveOfficerPrecision(highs,src,send){
   if(q.slice(0,proven).some((v,i)=>v!==score[i])||compareDoorObjectives(q,score)>=0)return;
   score=q;best=a.slice();emit('找到更佳安官班表');
  }
- const opt={output_flag:false,mip_abs_gap:0,mip_rel_gap:0};
+ const opt={output_flag:false,mip_abs_gap:0,mip_rel_gap:0,...variantOptions(src)};
  if(score[0]===0)proven=1;
  emit('已核對安官起始班表');
  if(!proven){
@@ -2511,7 +2517,7 @@ function solveOfficerPrecision(highs,src,send){
   {
    // 第二次以後（已有上次的下限）不再做小組重新分配，時間全部用來證明
    const lnsEnd=Date.now()+(Number.isFinite(src.pointsLB)?0:src.pointsSeconds*1000*0.45);
-   let seed=40503,stall=0,rounds=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+   let seed=40503+7919*(src.variant||0),stall=0,rounds=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
    const dev=a=>{const d=people.map(w=>filled*(w.burdenOffset||0));a.forEach((p,j)=>{if(p>=0&&live(j))d[p]+=filled*src.points[j]-PT;});return d;};
    const take=(list,k)=>{const c=list.slice(),out=[];while(out.length<k&&c.length)out.push(c.splice(Math.floor(rnd()*c.length),1)[0]);return out;};
    const size=Math.min(people.length,6),third=Math.max(3,Math.ceil(people.length/3));
@@ -2712,7 +2718,7 @@ function precisionSolve(highs,src,send){
   if(proven===3&&Number.isInteger(warm.pairBound)&&score[3]===warm.pairBound){proven++;auto();}
   emit('已完成每日人選與時段配對');
  }
- const options={mip_rel_gap:0,mip_abs_gap:0,output_flag:false};
+ const options={mip_rel_gap:0,mip_abs_gap:0,output_flag:false,...variantOptions(src)};
  function publish(a){
   const s=doorObjectives(src,a);
   if(s.slice(0,proven).some((v,i)=>v!==score[i]))throw Error('高優先目標不符');
@@ -4081,6 +4087,40 @@ async function solveOfflinePool(job,url,bytes,frame,onProgress=null){
  }finally{clearTimeout(timer);worker?.terminate();job.worker=null;job.reject=null;}
 }
 
+// 精算（不含一鍵排班）時同時開幾個背景引擎，各用不同的隨機種子與搜尋力度（見 variantOptions）。
+// 任何一個把全部目標證明完就採用它並停止其他；都沒證明完就等全部結束，取證明最多的結果、最高的點數下限。
+// 每個引擎回報的班表都經過同一個 onProgress 檢查與巡檢，只會採用更好的班表。
+function precisionWorkerCount(){
+ const cores=navigator.hardwareConcurrency||2,mem=navigator.deviceMemory||8,touch=matchMedia?.('(pointer:coarse)').matches;
+ // 大門、安官同時精算，各分一半核心；手機或記憶體小的裝置最多 2 個，避免瀏覽器因記憶體不足關掉分頁
+ return Math.max(1,Math.min(touch||mem<=4?2:3,Math.floor(cores/2)));
+}
+async function solveOfflinePortfolio(job,url,bytes,src,onProgress,count){
+ if(count<=1)return solveOfflinePool(job,url,bytes,src,onProgress);
+ const subs=Array.from({length:count},()=>({worker:null,reject:null}));
+ const level=r=>r?(r.pointsUnproven?0:2)+(r.holidayUnproven?0:1):-1;
+ return await new Promise((resolve,reject)=>{
+  let settled=false,pending=count;const results=[],errors=[];
+  const stopAll=()=>subs.forEach(sub=>{sub.reject?.(Error('已由其他引擎完成'));sub.worker?.terminate();});
+  job.worker={terminate:stopAll};
+  job.reject=e=>{if(settled)return;settled=true;stopAll();reject(e);};
+  const done=()=>{
+   if(settled||pending)return;settled=true;
+   if(!results.length){reject(errors[0]||Error('背景求解器執行失敗'));return;}
+   const best=results.reduce((a,b)=>level(b)>level(a)?b:a);
+   const bounds=results.map(r=>r.pointsBound).filter(Number.isFinite);
+   resolve({...best,pointsBound:bounds.length?Math.max(...bounds):best.pointsBound,safetyHit:results.some(r=>r.safetyHit)});
+  };
+  subs.forEach((sub,k)=>{
+   solveOfflinePool(sub,url,bytes,{...src,variant:k},p=>onProgress(p,k)).then(r=>{
+    if(settled)return;
+    if(r&&!r.workLimited&&level(r)===3){settled=true;stopAll();resolve({...r,safetyHit:!!r.safetyHit});return;}
+    results.push(r);pending--;done();
+   },e=>{if(settled)return;errors.push(e);pending--;done();});
+  });
+ });
+}
+
 // 假日班公平精修：在精算引擎已證明所有目標最優之後，只做「不改變任何已證明目標數值」的互換，
 // 讓假日班依各人總班數更平均。排序在所有既有目標之後，因此不會犧牲缺班、班數公平、連站或艱苦哨。
 function holidayImbalance(tasks,a){
@@ -4417,10 +4457,23 @@ async function runPrecision(pool,draft=null,group=null){
   const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
   if(hash!=='69a85477acde13876c8fe83357959724e795abdfd144af0531f920d41b5f813e')throw Error('離線精算引擎校驗失敗');
   check();url=URL.createObjectURL(new Blob([$('zeroModule').textContent,'\n',$('doorObjectives').textContent,'\n',$('precisionWorker').textContent],{type:'text/javascript'}));
+  const workers=draft?1:precisionWorkerCount();
   const onProgress=progress=>{
    check();
    const a=progress.assignments,q=objectives(src,a);
-   if(q.some((n,i)=>!Number.isFinite(n)||n!==progress.scores[i])||progress.proven<certified||progress.proven>labels.length||
+   if(workers>1){
+    if(q.some((n,i)=>!Number.isFinite(n)||n!==progress.scores[i]))throw Error('目標數值不符');
+    const cmp=compareDoorObjectives(q,latest);
+    // 多個引擎同時跑：落後的回報直接略過；別的引擎多證明了幾項、但班表沒有比較好時，只更新「已證明」的項數
+    if(cmp>=0&&progress.proven<=certified)return;
+    if(cmp>0){
+     if(q.slice(0,progress.proven).some((n,i)=>n!==latest[i]))throw Error('不同引擎的已證明數值不一致');
+     certified=progress.proven;snapshot.proven=certified;cells.forEach((set,i)=>set(latest[i],i<certified));
+     report.textContent=month+' '+label+'｜'+progress.phase+'（'+certified+'/'+labels.length+'）'+saveWarning;job.summary=report.textContent;
+     paint(certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');return;
+    }
+   }
+   if(q.some((n,i)=>!Number.isFinite(n)||n!==progress.scores[i])||(workers===1&&progress.proven<certified)||progress.proven>labels.length||
     q.slice(0,certified).some((n,i)=>n!==latest[i]))throw Error('目標數值或證明順序不符');
    const cmp=compareDoorObjectives(q,latest);
    if(cmp>0)throw Error('候選方案優先順序不符');
@@ -4438,13 +4491,13 @@ async function runPrecision(pool,draft=null,group=null){
     renderChangeHistory();
     if(!saveAutoNow())saveWarning='。本機自動存檔失敗，請使用「備份全部」';}
    }
-   latest=q;certified=progress.proven;snapshot.proven=certified;
+   latest=q;certified=Math.max(certified,progress.proven);snapshot.proven=certified;
    cells.forEach((set,i)=>set(q[i],i<certified));
    report.textContent=month+' '+label+'｜'+progress.phase+'（'+certified+'/'+labels.length+'）'+saveWarning;
    job.summary=report.textContent;
    paint(certified/labels.length,label+' · '+progress.phase+'（'+certified+'/'+labels.length+'）');
   };
-  const solved=await solveOfflinePool(job,url,bytes,src,onProgress);check();
+  const solved=await solveOfflinePortfolio(job,url,bytes,src,onProgress,workers);check();
   if(solved?.safetyHit)safetyHit=true;
   if(!draft&&Number.isFinite(solved?.pointsBound))latestBound=solved.pointsBound;
   // 記住這次算出的點數下限（只增不減）；下次對同一份資料按精算，班表一達到下限就算證明完成
@@ -4946,7 +4999,7 @@ function downloadReadonly(){
  }catch(e){$('shareStatus').textContent='⚠ '+e.message;}
 }
 function readonlyPlainText(){
- const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.4','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
+ const p=readonlyPayload(),rows=[`${p.month} 勤務班表｜${p.status==='archived'?'已封存（非核定）':'草稿（未封存）'}`,'對照碼：'+(p.reference||'未標記')+' ｜ 工作台 v10.5','此為產生時的快照，非正式核定；離線檔不會自動同步新版。'];
  for(const pool of ['door','officer']){
   rows.push('',`【${pool==='door'?'大門衛哨':'安全士官'}】`);
   let prev='';for(const r of p[pool]){

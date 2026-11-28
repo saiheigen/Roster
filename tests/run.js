@@ -4,7 +4,7 @@
 // 用法：node run.js <工作台.html> [--baseline 舊版.html] [--quick]
 //        [--leave 休假.tsv --door 56 --officer 56 [--golden 標準答案.json | --write-golden 標準答案.json]]
 //        [--expect-exact-variants] [--report report.json]
-//        [--only selftest,demo,stress,variants,consistency,update,people,settings,burden,equivalence,real]
+//        [--only selftest,demo,stress,variants,consistency,update,people,portfolio,settings,burden,equivalence,real]
 const fs = require('fs');
 const K = require('./lib/page');
 const { verifySchedule, holidayImbalance } = require('./lib/verify');
@@ -164,6 +164,19 @@ async function suiteUpdate() {
 // 給被排的人：個人班表連結與行事曆檔
 async function suitePeople() {
   for (const s of await peopleFeatures(K, target)) record('給被排的人：' + s.name, s.ok, s.detail);
+}
+
+// 多個背景引擎同時精算（假裝裝置有 4 核心 → 大門、安官各 2 個引擎）：班表巡檢與驗算都要通過，安官要能證明最優
+async function suitePortfolio() {
+  const { page, errors } = await K.open(target);
+  await page.evaluate(() => Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 4 }));
+  const workers = []; page.on('worker', w => workers.push(w));
+  await K.loadDemo(page); await K.schedule(page);
+  const before = workers.length, st = await K.precisionBoth(page, 600000), d = await K.dumpSchedule(page);
+  const v = verifySchedule(d), opened = workers.length - before;
+  record('多引擎精算：範例名冊', opened >= 4 && d.audit.length === 0 && v.length === 0 && errors.length === 0 && /均已證明最優/.test(st.officer),
+    `背景引擎 ${opened} 個，巡檢 ${d.audit.length}，獨立驗算 ${v.length}，頁面錯誤 ${errors.length}；${st.officer.slice(0, 40)}`);
+  await page.close();
 }
 
 // v8.2 起：在「排班規則與每人上限」設定頁改數值，排班與驗算都必須依新設定，重新開啟後設定仍在。
@@ -336,6 +349,7 @@ async function suiteReal() {
     if (want('consistency')) await suiteConsistency();
     if (want('update')) await suiteUpdate();
     if (want('people')) await suitePeople();
+    if (want('portfolio')) await suitePortfolio();
     if (want('settings')) await suiteSettingsPage();
     if (want('burden')) await suiteBurden();
     if (opt('--baseline') && want('equivalence')) await suiteEquivalence(opt('--baseline'));

@@ -330,6 +330,12 @@ function searchDoorTimes(src,initial,floor,onBest){
 }
 
 // Publish improving witnesses while the unrestricted search proves its bounds.
+// 精算時同時跑的幾個背景引擎：第 0 個用預設設定，其餘換隨機種子與啟發式搜尋力度，走不同的搜尋路徑
+// （一鍵排班只用一個引擎、variant 一律為 0，才能保證同資料同結果）
+function variantOptions(src){
+ const v=src.variant||0;if(!v)return {};
+ return {random_seed:1000003*v%2147483647,mip_heuristic_effort:[0.05,0.3,0.15,0.5][v%4]};
+}
 // 最近一次求解回報的下限（「最優值不可能低於此」）；時間到沒證明完時，頁面會記住它，下次精算接著用
 var __lastDual=-Infinity;
 function solveDoorModel(highs,definition,seed,options,onWitness){
@@ -674,7 +680,7 @@ function solveOfficerPrecision(highs,src,send){
   if(q.slice(0,proven).some((v,i)=>v!==score[i])||compareDoorObjectives(q,score)>=0)return;
   score=q;best=a.slice();emit('找到更佳安官班表');
  }
- const opt={output_flag:false,mip_abs_gap:0,mip_rel_gap:0};
+ const opt={output_flag:false,mip_abs_gap:0,mip_rel_gap:0,...variantOptions(src)};
  if(score[0]===0)proven=1;
  emit('已核對安官起始班表');
  if(!proven){
@@ -745,7 +751,7 @@ function solveOfficerPrecision(highs,src,send){
   {
    // 第二次以後（已有上次的下限）不再做小組重新分配，時間全部用來證明
    const lnsEnd=Date.now()+(Number.isFinite(src.pointsLB)?0:src.pointsSeconds*1000*0.45);
-   let seed=40503,stall=0,rounds=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+   let seed=40503+7919*(src.variant||0),stall=0,rounds=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
    const dev=a=>{const d=people.map(w=>filled*(w.burdenOffset||0));a.forEach((p,j)=>{if(p>=0&&live(j))d[p]+=filled*src.points[j]-PT;});return d;};
    const take=(list,k)=>{const c=list.slice(),out=[];while(out.length<k&&c.length)out.push(c.splice(Math.floor(rnd()*c.length),1)[0]);return out;};
    const size=Math.min(people.length,6),third=Math.max(3,Math.ceil(people.length/3));
@@ -946,7 +952,7 @@ function precisionSolve(highs,src,send){
   if(proven===3&&Number.isInteger(warm.pairBound)&&score[3]===warm.pairBound){proven++;auto();}
   emit('已完成每日人選與時段配對');
  }
- const options={mip_rel_gap:0,mip_abs_gap:0,output_flag:false};
+ const options={mip_rel_gap:0,mip_abs_gap:0,output_flag:false,...variantOptions(src)};
  function publish(a){
   const s=doorObjectives(src,a);
   if(s.slice(0,proven).some((v,i)=>v!==score[i]))throw Error('高優先目標不符');

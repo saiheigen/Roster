@@ -33,7 +33,7 @@
 ```bash
 node build.js --check          # index.html 與原始碼一致
 cd tests && npm install && npx playwright install chromium
-node run.js ../index.html --quick --only selftest,demo,consistency,update,people,stress,settings,burden
+node run.js ../index.html --quick --only selftest,demo,consistency,update,people,portfolio,stress,settings,burden
 ```
 
 真實休假紀錄只在本機用 `--leave` 測試，不要放進這個儲存庫。
