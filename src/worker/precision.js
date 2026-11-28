@@ -135,6 +135,25 @@ function precisionModel(src,stage,locks,totals,cuts,certificate=null){
    }
    continue;
   }
+  // 點數模式：班數已鎖定在 goal±L1 內，點數與假日班數的平方差距改用精確寫法（同安官的 exactSquares）
+  let doorZ=null;
+  function exactDoor(v,h,weights,slope,offset){
+   if(!doorZ){
+    const L=locks[2]||0,lo=Math.max(0,Math.ceil(goal-L-1e-9)),hi=Math.min(names.length,Math.floor(goal+L+1e-9)),ks=[],zs=[];
+    for(let k=lo;k<=hi;k++){ks.push(k);const z='w'+p+'_'+k;zs.push(z);binary.push(z);}
+    rows.push(sum(zs)+' = 1');rows.push(linear([[1,c],...ks.map((k,i)=>[-k,zs[i]])])+' = 0');doorZ={ks,zs};
+   }
+   const ws=weights.slice().sort((a,b)=>a-b),ys=[],hs=[];
+   doorZ.ks.forEach((k,i)=>{
+    const z=doorZ.zs[i],lo=ws.slice(0,k).reduce((a,b)=>a+b,0),hi=k?ws.slice(-k).reduce((a,b)=>a+b,0):0,sk=slope*k-offset;
+    const y=v+'y'+k,hk=v+'h'+k;ys.push(y);hs.push(hk);
+    rows.push(linear([[1,y],[-lo,z]])+' >= 0',linear([[1,y],[-hi,z]])+' <= 0');
+    if(lo===hi)rows.push(linear([[1,hk],[-((lo-sk)**2),z]])+' >= 0');
+    else for(let val=lo;val<hi;val++){const a=val-sk;rows.push(linear([[1,hk],[-(2*a+1),y],[(2*a+1)*sk+a*(a+1),z]])+' >= 0');}
+   });
+   rows.push(linear([[1,v],...ys.map(y=>[-1,y])])+' = 0');
+   rows.push(linear([[1,h],...hs.map(x=>[-1,x])])+' = 0');
+  }
   function square(v,list,total,weight,bucket){
    count(v,list);
    const h='h'+v;
@@ -144,6 +163,8 @@ function precisionModel(src,stage,locks,totals,cuts,certificate=null){
     const target=total*goal/F,cap=Math.min(goal,list.length);
     if(!cap){bounds.push(h+' = '+target**2);return;}
     for(let k=0;k<cap;k++)rows.push(linear([[1,h],[-(2*k+1-2*target),v]])+' >= '+(target**2-k*(k+1)));
+   }else if(src.points){
+    const inList=new Set(list);exactDoor(v,h,names.map(x=>inList.has(x)?1:0),total/F,0);
    }else{
     const points=cuts.get(v)||new Set([0]);
     for(const e of points){
@@ -162,6 +183,8 @@ function precisionModel(src,stage,locks,totals,cuts,certificate=null){
     const target=total*goal/F-offset,maxV=terms.reduce((acc,[w])=>acc+w,0);
     if(!maxV){bounds.push(h+' = '+target**2);return;}
     for(let k=0;k<maxV;k++)rows.push(linear([[1,h],[-(2*k+1-2*target),v]])+' >= '+(target**2-k*(k+1)));
+   }else if(src.points){
+    const wt=new Map(terms.map(([w,x])=>[x,w]));exactDoor(v,h,names.map(x=>wt.get(x)||0),total/F,offset);
    }else{
     const pts=cuts.get(v)||new Set([0]);
     for(const e of pts){const q=e/F;rows.push(linear([[1,h],[-2*q,v],[2*q*total/F,c]])+' >= '+(2*q*offset-q*q));}
@@ -307,8 +330,10 @@ function searchDoorTimes(src,initial,floor,onBest){
 }
 
 // Publish improving witnesses while the unrestricted search proves its bounds.
+// 最近一次求解回報的下限（「最優值不可能低於此」）；時間到沒證明完時，頁面會記住它，下次精算接著用
+var __lastDual=-Infinity;
 function solveDoorModel(highs,definition,seed,options,onWitness){
- const model=highs.createModel({format:'lp',data:definition.lp});
+ const model=highs.createModel({format:'lp',data:definition.lp});__lastDual=-Infinity;
  try{
   model.options.set(draftOptions(options));
   const names=Array.from({length:model.getDimensions().numCols},(_,i)=>model.getColName(i));
@@ -318,7 +343,8 @@ function solveDoorModel(highs,definition,seed,options,onWitness){
    if(!m)return;
    const p=Number(m[1]),j=Number(m[2]);xcols.push([i,j,p]);
   });
-  const r=model.run({...draftBudget(highs,options),[highs.constants.callbackType.mipImprovingSolution](e){
+  const MI=highs.constants.callbackType.mipInterrupt,budget=draftBudget(highs,options)[MI];
+  const r=model.run({[MI](e){const b=Number(e.data.mip_dual_bound);if(Number.isFinite(b)&&b>__lastDual)__lastDual=b;if(budget)budget(e);},[highs.constants.callbackType.mipImprovingSolution](e){
    const vector=e.data.mip_solution;
    if(!vector||vector.length!==names.length)return;
    const a=Array(seed.length).fill(-1);
@@ -326,6 +352,7 @@ function solveDoorModel(highs,definition,seed,options,onWitness){
    onWitness(a);
   }});
   const states=highs.constants.modelStatus;
+  if(r.modelStatus===states.optimal)__lastDual=Infinity; // 已證明最優：由呼叫端以目標值判斷
   if(r.modelStatus===states.infeasible)return {Status:'Infeasible'};
   if(__draft&&r.modelStatus===states.timeLimit)__safetyHit=true;
   if(__draft&&[states.unknown,states.solutionLimit,states.timeLimit,states.interrupted].includes(r.modelStatus))throw workLimitError();
@@ -393,6 +420,27 @@ function officerAssignmentModel(f,{stage,filled,l1,targetL1,choices,groups,categ
  };
  const allFilled=filled===tasks.length;
  const totalN=tasks.filter(t=>t.night).length,totalM=tasks.filter(t=>t.noon).length,totalH=tasks.reduce((a,t)=>a+t.dur,0),totalD=tasks.filter(t=>t.holiday).length;
+ // 勤務負擔點數（與假日班數）平方差距的精確寫法：
+ // 「個人班數公平」已鎖定，每人班數 c 只可能是 goal±l1 內的幾個整數。對每個可能的 c 用一個 0/1 變數 z，
+ // 把點數 pt（假日班數 d）拆到被選中的 c 底下；pt 只會是整數，在相鄰整數之間畫割線，平方在每個可能值都完全正確。
+ // 一次求解即是真正的最優（不必一輪一輪補切線），線性放鬆的下限也比切線緊。
+ function exactSquares(p,c,work,goal,parts){
+  const maxC=Math.min(capacity[p],work.length),loC=Math.max(0,Math.ceil(goal-(l1??maxC)-1e-9)),hiC=Math.min(maxC,Math.floor(goal+(l1??maxC)+1e-9));
+  const ks=[],zs=[];for(let k=loC;k<=hiC;k++){ks.push(k);const z='z'+p+'_'+k;zs.push(z);binary.push(z);}
+  rows.push(sum(zs)+' = 1');rows.push(expr([[1,c],...ks.map((k,i)=>[-k,zs[i]])])+' = 0');
+  for(const part of parts){
+   const ws=part.weights.slice().sort((a,b)=>a-b),ys=[],hs=[];
+   ks.forEach((k,i)=>{
+    const z=zs[i],lo=ws.slice(0,k).reduce((a,b)=>a+b,0),hi=k?ws.slice(-k).reduce((a,b)=>a+b,0):0,s=part.slope*k-part.offset;
+    const y=part.name+'y'+p+'_'+k,h=part.name+'h'+p+'_'+k;ys.push(y);hs.push(h);
+    rows.push(expr([[1,y],[-lo,z]])+' >= 0',expr([[1,y],[-hi,z]])+' <= 0');
+    if(lo===hi)rows.push(expr([[1,h],[-((lo-s)**2),z]])+' >= 0');
+    else for(let v=lo;v<hi;v++){const a=v-s;rows.push(expr([[1,h],[-(2*a+1),y],[(2*a+1)*s+a*(a+1),z]])+' >= 0');}
+   });
+   rows.push(expr([[1,part.var],...ys.map(y=>[-1,y])])+' = 0');
+   rows.push(expr([[1,part.key],...hs.map(h=>[-1,h])])+' = 0');
+  }
+ }
  for(let p=0;p<people.length;p++){
   const work=[],night=[],noon=[],day=[],eve=[],hol=[],ptTerms=[],dayTasks=new Map(),byDay=new Map(),byNumber=new Map(),bySunday=new Map(),bandVars=new Map();
   for(const j of allowed[p]){
@@ -473,17 +521,22 @@ function officerAssignmentModel(f,{stage,filled,l1,targetL1,choices,groups,categ
    // 有缺班時（fixHoles）：缺的班固定空著，總點數與假日班數只算有人站的班
    const pv='pt'+p,PT=f.src.points.reduce((a,b,j)=>a+(fixHoles&&fixHoles.has(j)?0:b),0),off=w.burdenOffset||0,key='k'+p+'_0',err='q'+p+'_0';
    rows.push(expr([[1,pv],...ptTerms.map(([wt,x])=>[-wt,x])])+' = 0');
-   bounds.push(err+' free');rows.push(expr([[1,err],[-1,pv],[PT/filled,c]])+' = '+off);
-   for(const a of cuts.get(key)||[0])rows.push(expr([[1,key],[-2*a/filled,err]])+' >= '+(-((a/filled)**2)));
-   fairTerms.push({p,k:0,key});harshBucket.push('50 '+key);
-   if(f.src.holidayWeight>0){
-    // 假日班數平均（與點數合併計分）；第 4 項假日班公平沿用同一個變數
-    const dv=total('d'+p,hol),k3='k'+p+'_3',e3='q'+p+'_3';
-    const liveD=fixHoles?tasks.filter((t,j)=>t.holiday&&!fixHoles.has(j)).length:totalD;
-    bounds.push(e3+' free');rows.push(expr([[1,e3],[-1,dv],[liveD/filled,c]])+' = 0');
-    for(const a of cuts.get(k3)||[0])rows.push(expr([[1,k3],[-2*a/filled,e3]])+' >= '+(-((a/filled)**2)));
-    fairTerms.push({p,k:3,key:k3});harshBucket.push((200*f.src.holidayWeight)+' '+k3);
+   const liveD=fixHoles?tasks.filter((t,j)=>t.holiday&&!fixHoles.has(j)).length:totalD,useHol=f.src.holidayWeight>0;
+   const dv=useHol?total('d'+p,hol):null,k3='k'+p+'_3';
+   if(!categoryOnly){
+    // 精確寫法（見 exactSquares）：err＝pt − 總點數/填班數×班數 ＋ 跨月累計差額
+    const holSet=new Set(hol),parts=[{name:'p',var:pv,key,weights:ptTerms.map(([wt])=>wt),slope:PT/filled,offset:off}];
+    if(useHol)parts.push({name:'d',var:dv,key:k3,weights:work.map(x=>holSet.has(x)?1:0),slope:liveD/filled,offset:0});
+    exactSquares(p,c,work,w.goal,parts);
+   }else{
+    bounds.push(err+' free');rows.push(expr([[1,err],[-1,pv],[PT/filled,c]])+' = '+off);
+    for(const a of cuts.get(key)||[0])rows.push(expr([[1,key],[-2*a/filled,err]])+' >= '+(-((a/filled)**2)));
+    if(useHol){const e3='q'+p+'_3';bounds.push(e3+' free');rows.push(expr([[1,e3],[-1,dv],[liveD/filled,c]])+' = 0');
+     for(const a of cuts.get(k3)||[0])rows.push(expr([[1,k3],[-2*a/filled,e3]])+' >= '+(-((a/filled)**2)));}
    }
+   fairTerms.push({p,k:0,key});harshBucket.push('50 '+key);
+   // 假日班數平均（與點數合併計分）；第 4 項假日班公平沿用同一個變數
+   if(useHol){fairTerms.push({p,k:3,key:k3});harshBucket.push((200*f.src.holidayWeight)+' '+k3);}
   }else for(const [k,[v,weight,fixed,limit]] of [[nv,50,totalN,filled],[mv,35,totalM,filled],[hv,1,totalH,6*filled]].entries()){
    const key='k'+p+'_'+k,err='q'+p+'_'+k,terms=[[1,err],[-1,v]];
    if(allFilled)terms.push([fixed/filled,c]);
@@ -614,7 +667,8 @@ function solveOfficerPrecision(highs,src,send){
     t.dur!==[2,2,2,2,6,6,4][j%7]||!!t.night!==(j%7<4)||!!t.noon!==(j%7===5)))throw Error('安官時段格式不符');
  let best=src.baseline.map(p=>p??-1),score=officerObjectives(src,best),proven=0,ptsTimed=false,ptsRestricted=false;
  const emit=phase=>send({phase,proven:ptsTimed?Math.min(proven,2):proven,scores:score,assignments:best});
- const fin=r=>ptsTimed?{...r,status:'OPTIMAL',holidayUnproven:true,pointsUnproven:true,pointsTimedOut:!ptsRestricted,pointsRestricted:ptsRestricted}:r;
+ let ptsBound=null;
+ const fin=r=>ptsTimed?{...r,status:'OPTIMAL',holidayUnproven:true,pointsUnproven:true,pointsTimedOut:!ptsRestricted,pointsRestricted:ptsRestricted,pointsBound:ptsBound}:r;
  function consider(a){
   const q=officerObjectives(src,a);
   if(q.slice(0,proven).some((v,i)=>v!==score[i])||compareDoorObjectives(q,score)>=0)return;
@@ -682,16 +736,20 @@ function solveOfficerPrecision(highs,src,send){
    return added;
   };
   addPts(best);
+  // 上次精算留下的下限：同一份資料仍然有效。目前班表的點數一旦等於這個下限，就證明已是最優
+  if(!holeSet&&Number.isFinite(src.pointsLB))ptsBound=src.pointsLB;
+  const atBound=()=>ptsBound!==null&&score[2]<=ptsBound+1e-9*Math.max(1,score[2]);
   // 大型鄰域搜尋（LNS）：每輪只讓幾位安官（點數偏高與偏低各半）彼此重新分配手上的班，其他人完全不動，
   // 用整數規劃求這一小組的最佳分配。小問題幾秒內解完，能穩定改善點數；但只是改善，不構成整體最優證明。
   // 用時間預算的前 45%；剩下的時間照舊做整體證明（從改善後的班表出發，較容易完成）。
   {
-   const lnsEnd=Date.now()+src.pointsSeconds*1000*0.45;
+   // 第二次以後（已有上次的下限）不再做小組重新分配，時間全部用來證明
+   const lnsEnd=Date.now()+(Number.isFinite(src.pointsLB)?0:src.pointsSeconds*1000*0.45);
    let seed=40503,stall=0,rounds=0;const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
    const dev=a=>{const d=people.map(w=>filled*(w.burdenOffset||0));a.forEach((p,j)=>{if(p>=0&&live(j))d[p]+=filled*src.points[j]-PT;});return d;};
    const take=(list,k)=>{const c=list.slice(),out=[];while(out.length<k&&c.length)out.push(c.splice(Math.floor(rnd()*c.length),1)[0]);return out;};
    const size=Math.min(people.length,6),third=Math.max(3,Math.ceil(people.length/3));
-   while(rounds<300&&stall<15&&score[2]>1e-9&&Date.now()<lnsEnd-500){
+   while(rounds<300&&stall<15&&score[2]>1e-9&&!atBound()&&Date.now()<lnsEnd-500){
     rounds++;
     const d=dev(best),order=people.map((_,p)=>p).sort((x,y)=>d[y]-d[x]||x-y);
     const group=new Set([...take(order.slice(0,third),size>>1),...take(order.slice(-third),size-(size>>1))]);
@@ -710,11 +768,18 @@ function solveOfficerPrecision(highs,src,send){
   }
   for(let iter=0;;iter++){
    if(iter>400)throw Error('安官勤務負擔點數未能完成證明');
+   if(atBound()){emit('安官勤務負擔點數已達上次精算算出的下限');break;}
    emit('正在證明安官勤務負擔點數最優');
    const left=(ptsEnd-Date.now())/1000;if(left<=0.5){ptsTimed=true;break;}
    const def=officerAssignmentModel(f,{stage:2,filled,l1:score[1],cuts,fixHoles:holeSet});
    let r;try{r=solveDoorModel(highs,def,best,{...opt,time_limit:left},consider);}
-   catch(e){if(Date.now()>=ptsEnd-1000){ptsTimed=true;break;}throw e;}
+   catch(e){
+    if(Date.now()>=ptsEnd-1000){
+     if(!holeSet&&Number.isFinite(__lastDual))ptsBound=Math.max(ptsBound??0,__lastDual/50);
+     if(atBound())break; // 這次找到的班表已達下限（下限可能來自上次精算）
+     ptsTimed=true;break;
+    }
+    throw e;}
    if(r.Status!=='Optimal'){if(Date.now()>=ptsEnd-1000){ptsTimed=true;break;}throw Error('安官勤務負擔點數證明未完成');}
    const a=def.read(r);consider(a);
    emit('安官勤務負擔點數：下限 '+(r.ObjectiveValue/50).toFixed(2)+'，目前 '+score[2].toFixed(2)+'（第 '+(iter+1)+' 輪）');
@@ -798,10 +863,11 @@ function solveOfficerPrecision(highs,src,send){
    if(r.Status!=='Optimal')throw Error('安官假日班公平證明未完成');
    const a=def.read(r),q=officerObjectives(src,a);
    if(q[0]!==score[0]||q[1]!==score[1])throw Error('安官假日班：高優先目標複核失敗');
-   const added=addCuts(a);
-   if(q[2]>score[2]+1e-12){if(!added)throw Error('安官假日班：艱苦哨鎖定複核失敗');continue;}
+   const added=addCuts(a),tol=1e-9*Math.max(1,Math.abs(score[2]));
+   if(q[2]>score[2]+tol){if(!added)throw Error('安官假日班：艱苦哨鎖定複核失敗');continue;}
    consider(a);
-   if(!added){
+   // 點數模式為精確寫法：求解器的目標值等於真實假日分數就是最優，不必再補切線重解
+   if(!added||(src.points&&Math.abs(r.ObjectiveValue-q[3])<=1e-6*Math.max(1,q[3]))){
     if(Math.abs(r.ObjectiveValue-q[3])>1e-6)throw Error('安官假日班分數複核失敗');
     if(q[3]>score[3]+1e-12)throw Error('安官假日班：最優解與已知班表不一致');
     done=true;
@@ -868,7 +934,8 @@ function precisionSolve(highs,src,send){
  if(!tasks.length||tasks.length%12||tasks.some(t=>t.end-t.start!==2))throw Error('大門時段格式不符');
  let best=src.baseline.map(p=>p??-1),score=doorObjectives(src,best),proven=0,ptsTimed=false;
  const emit=phase=>send({phase,proven:ptsTimed?Math.min(proven,4):proven,assignments:best,scores:score});
- const fin=r=>ptsTimed?{...r,status:'OPTIMAL',holidayUnproven:true,pointsUnproven:true,pointsTimedOut:true}:r;
+ let ptsBound=null;
+ const fin=r=>ptsTimed?{...r,status:'OPTIMAL',holidayUnproven:true,pointsUnproven:true,pointsTimedOut:true,pointsBound:ptsBound}:r;
  const consider=(a)=>{if(!a)return false;const s=doorObjectives(src,a);if(compareDoorObjectives(s,score)>=0)return false;best=a;score=s;return true;};
  const auto=()=>{while(proven<6&&score[proven]===0)proven++;};
  auto();emit('已核對起始班表');
@@ -923,12 +990,22 @@ function precisionSolve(highs,src,send){
   const PTS=src.points.reduce((a,b)=>a+b,0),F=tasks.length,cuts=new Map();let done=false;
   // 先在 ±8 點範圍每 0.5 點放一條切線，讓下限一開始就接近真實平方偏差，減少反覆求解次數
   const grid=Array.from({length:33},(_,i)=>i-16);people.forEach((_,p)=>cuts.set('pt'+p,new Set(grid.map(d=>F*d))));
+  // 上次精算留下的下限（同一份資料仍有效）；班表點數一旦等於下限即證明最優
+  if(Number.isFinite(src.pointsLB))ptsBound=src.pointsLB;
+  const atBound=()=>ptsBound!==null&&score[4]<=ptsBound+1e-9*Math.max(1,score[4]);
   for(let iter=0;iter<400&&!done;iter++){
+   if(atBound()){emit('勤務負擔點數已達上次精算算出的下限');done=true;break;}
    emit('正在證明勤務負擔點數的最優分配');
    const left=(ptsEnd-Date.now())/1000;if(left<=0.5){ptsTimed=true;break;}
    const model=precisionModel(src,4,score.slice(0,4),{points:PTS,holiday:tasks.filter(t=>t.holiday).length},cuts);
    let r;try{r=solveDoorModel(highs,model,best,{...options,time_limit:left},publish);}
-   catch(e){if(Date.now()>=ptsEnd-1000){ptsTimed=true;break;}throw e;}
+   catch(e){
+    if(Date.now()>=ptsEnd-1000){
+     if(Number.isFinite(__lastDual))ptsBound=Math.max(ptsBound??0,__lastDual/10);
+     if(atBound()){done=true;break;}
+     ptsTimed=true;break;
+    }
+    throw e;}
    if(r.Status!=='Optimal'){if(Date.now()>=ptsEnd-1000){ptsTimed=true;break;}throw Error('勤務負擔點數求解狀態 '+r.Status);}
    const a=model.read(r),s=doorObjectives(src,a);
    if(s.slice(0,4).some((v,i)=>v!==score[i]))throw Error('高優先目標複核失敗');

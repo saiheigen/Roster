@@ -334,6 +334,13 @@ function checkPrecisionDisplay(){
   }
  }
 }
+// 同一份資料（名冊、班次、規則、固定班、點數與跨月帳）才共用上次精算的點數下限；資料一改就不用
+function pointsProblemKey(src){
+ const {baseline,holidaySeconds,pointsSeconds,draft,pointsLB,...core}=src;
+ const text=JSON.stringify(core,(k,v)=>v instanceof Map?[...v]:v instanceof Set?[...v]:v);
+ let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+ return src.pool+':'+(h>>>0).toString(36)+':'+text.length;
+}
 async function runPrecision(pool,draft=null,group=null){
  const officer=pool==='officer',label=officer?'安官':'大門',objectives=officer?officerObjectives:doorObjectives;
  const labels=officer?['缺班','個人目標偏差 L1（已計折抵）',burdenOn()?'勤務負擔點數':'艱苦哨與時數公平分數','假日班公平']:['缺班','同日額外班次','個人目標偏差 L1','本月連站兩天（人次）',burdenOn()?'勤務負擔點數':'艱苦哨分數','假日班公平'];
@@ -344,7 +351,7 @@ async function runPrecision(pool,draft=null,group=null){
  const job={precision:true,pool,label},base=draft?.base||last,month=activeMonth,generation=scheduleGeneration;
  const inputs=draft?currentInputSig():loadedSig,pins={...pinnedShifts},pinSig=textSig(pins);
  // 只核對本勤務的班表：另一個勤務同時精算、更新班表時不會互相誤判
- let signature=precisionPoolSignature(base.solutions,pool),url,latest,certified=0,saveWarning='',finalizeCells=null;
+ let signature=precisionPoolSignature(base.solutions,pool),url,latest,certified=0,saveWarning='',finalizeCells=null,latestBound=null;
  const current=()=>offlineJobs.has(job)&&(draft||last===base)&&month===activeMonth&&!isLocked()&&!storagePaused&&
   generation===scheduleGeneration&&inputs===currentInputSig()&&pinSig===textSig(pinnedShifts)&&signature===precisionPoolSignature(base.solutions,pool);
  function check(){if(draft)draft.check();if(!current())throw Error('本月資料或班表已變更，請重新啟動精算');}
@@ -364,6 +371,10 @@ async function runPrecision(pool,draft=null,group=null){
  try{
   verifyOptimization(base.m,base.solutions,pins);
   const src={...solverBuildRequest(base.m,base.solutions).pools[pool],pool,draft:!!draft,holidaySeconds:draft?0:60,pointsSeconds:draft?0:120},initial=objectives(src,src.baseline);
+  // 上次精算留下的勤務負擔點數下限（同一份資料才用）
+  // 同一份資料再按精算：沿用下限，並把點數證明時間加倍（120 → 240 → 480 秒），求解器才有機會往下算得更深
+  const boundKey=pointsProblemKey(src),saved=appStore.months[activeMonth]?.pointsBounds?.[boundKey];
+  if(!draft&&saved&&Number.isFinite(saved.lb)){src.pointsLB=saved.lb;src.pointsSeconds=Math.min(480,120*2**Math.min(2,saved.runs||1));}
   latest=initial;
   const cells=labels.map((label,i)=>{
    const row=document.createElement('tr');
@@ -374,13 +385,14 @@ async function runPrecision(pool,draft=null,group=null){
    precisionPart(pool,'Rows').appendChild(row);
    // 結束後（final）：次要項目顯示「已改善／未再改善」，不再停在「待證明」
    let shown=initial[i],proof=false;
-   return (value,proved,final)=>{
-    if(value!==undefined&&value!==null)shown=value;if(proved!==undefined)proof=!!proved;
+   let bound=null;
+   return (value,proved,final,lower)=>{
+    if(value!==undefined&&value!==null)shown=value;if(proved!==undefined)proof=!!proved;if(Number.isFinite(lower))bound=lower;
     cols[2].textContent=fmt(shown);
-    cols[3].textContent=proof?'已證明最優':!final?'待證明':i>=labels.length-2?(shown<initial[i]-1e-9?'已改善・未證明':'未再改善・未證明'):'未完成證明';
+    cols[3].textContent=proof?'已證明最優':!final?'待證明':i>=labels.length-2?(shown<initial[i]-1e-9?'已改善・未證明':'未再改善・未證明')+(bound!==null&&!proof?'（最優值至少 '+fmt(bound)+'）':''):'未完成證明';
    };
   });
-  finalizeCells=()=>cells.forEach(c=>c(undefined,undefined,true));
+  finalizeCells=()=>cells.forEach((c,i)=>c(undefined,undefined,true,i===labels.length-2&&Number.isFinite(latestBound)?latestBound:undefined));
   const bytes=unb64($('zeroBinary').textContent.trim());
   const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
   if(hash!=='69a85477acde13876c8fe83357959724e795abdfd144af0531f920d41b5f813e')throw Error('離線精算引擎校驗失敗');
@@ -414,6 +426,13 @@ async function runPrecision(pool,draft=null,group=null){
   };
   const solved=await solveOfflinePool(job,url,bytes,src,onProgress);check();
   if(solved?.safetyHit)safetyHit=true;
+  if(!draft&&Number.isFinite(solved?.pointsBound))latestBound=solved.pointsBound;
+  // 記住這次算出的點數下限（只增不減）；下次對同一份資料按精算，班表一達到下限就算證明完成
+  if(!draft&&Number.isFinite(solved?.pointsBound)){
+   const mo=appStore.months[activeMonth]||(appStore.months[activeMonth]={}),all=mo.pointsBounds||(mo.pointsBounds={}),prev=all[boundKey];
+   all[boundKey]={lb:Math.max(Number.isFinite(prev?.lb)?prev.lb:-Infinity,solved.pointsBound),runs:(prev?.runs||0)+1};
+   const keys=Object.keys(all);if(keys.length>12)delete all[keys[0]];saveAutoSoon();
+  }
   if(solved?.workLimited){timedOut=true;stopOffline(label+'精算已達一鍵排班運算量上限。',job);throw Error('已達一鍵排班運算量上限');}
   const holidaySkipped=!!solved?.holidayUnproven&&(certified===labels.length-1||(!!solved?.pointsUnproven&&certified===labels.length-2));
   if(certified!==labels.length&&!holidaySkipped)throw Error('求解器未完成所有目標的證明');
@@ -453,7 +472,7 @@ async function runPrecision(pool,draft=null,group=null){
     if(holidayProvenByBound){certified=labels.length;report.textContent=month+' '+label+'｜'+labels.length+' 項目標均已證明最優（'+labels.length+'/'+labels.length+'）';}
    }catch(_){}
   }
-  const why=solved?.pointsRestricted?'有缺班：缺的班維持空缺，其餘班次已平衡勤務負擔點數與假日班（不另證明）':solved?.pointsUnproven?(solved.pointsTimedOut?(draft?'勤務負擔點數已在時限內改善，需要完整證明請按「精算並證明最優」':'勤務負擔點數在 120 秒內未完成證明，已保留找到的改善；假日班公平已在點數不變差的前提下改善'):'有缺班，勤務負擔點數與假日班公平不另證明')
+  const why=solved?.pointsRestricted?'有缺班：缺的班維持空缺，其餘班次已平衡勤務負擔點數與假日班（不另證明）':solved?.pointsUnproven?(solved.pointsTimedOut?(draft?'勤務負擔點數已在時限內改善，需要完整證明請按「精算並證明最優」':'勤務負擔點數在 '+src.pointsSeconds+' 秒內未完成證明，已保留找到的改善'+(Number.isFinite(latestBound)?'（最優值至少 '+latestBound.toFixed(2)+'，目前最多差 '+Math.max(0,(latest[labels.length-2]-latestBound)/Math.max(1e-9,latest[labels.length-2])*100).toFixed(1)+'%；再按一次精算會接著算，時間加倍）':'')+'；假日班公平已在點數不變差的前提下改善'):'有缺班，勤務負擔點數與假日班公平不另證明')
    :solved?.holidayTimedOut?'假日班公平在 60 秒內未完成證明，已保留找到的改善':draft?'假日班已用快速互換改善，需要完整證明請按「精算並證明最優」':'有缺班，假日班公平不另證明';
   status.textContent=panel.dataset.status=label+'精算完成，'+(holidaySkipped&&!holidayProvenByBound?(labels.length-(solved?.pointsUnproven?2:1))+' 項目標已證明最優（'+why+'）。':labels.length+' 項目標均已證明最優（含假日班公平）。')+holidayNote+saveWarning;
  }catch(e){if(offlineJobs.has(job)){problem=label+'精算未完成：'+e.message;panel.dataset.status=label+'精算已中止。'+e.message;status.textContent=label+'精算已中止。'+e.message+'。'+saveWarning;report.textContent=month+' '+label+'｜已中止，已完成 '+certified+'/'+labels.length+' 項證明。'+saveWarning;}}
