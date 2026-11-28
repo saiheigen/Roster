@@ -74,5 +74,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+      - name: 等待剛上傳的檔案可被讀取（GitHub 偶爾要幾秒才查得到）
+        run: sleep 20
       - id: deployment
         uses: actions/deploy-pages@v4
